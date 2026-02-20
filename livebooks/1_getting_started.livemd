@@ -1,0 +1,223 @@
+# Getting Started with Fred
+
+```elixir
+Mix.install([
+  {:fred, path: Path.join(__DIR__, "..")},
+  {:vega_lite, "~> 0.1"},
+  {:kino_vega_lite, "~> 0.1"}
+])
+```
+
+## Setup
+
+Install dependencies. This notebook uses the `fred` library for API access and
+`VegaLite` for charting.
+
+> **Before you begin:** You'll need a free FRED API key.
+> Register at https://fred.stlouisfed.org/docs/api/api_key.html
+
+```elixir
+alias VegaLite, as: Vl
+```
+
+Set your API key. Replace the placeholder below or set the `FRED_API_KEY`
+environment variable before launching Livebook.
+
+```elixir
+# Option 1: paste your key directly
+# Application.put_env(:fred, :api_key, "your_key_here")
+
+# Option 2: read from environment (recommended)
+Application.put_env(:fred, :api_key, System.fetch_env!("LB_FRED_API_KEY"))
+```
+
+Optionally, attach the built-in telemetry logger so you can see each HTTP
+request in the Livebook output pane.
+
+```elixir
+Fred.Telemetry.Logger.attach(level: :info)
+```
+
+## Exploring a Series
+
+Let's start by looking up metadata for the **Unemployment Rate** series (`UNRATE`).
+
+```elixir
+{:ok, data} = Fred.Series.get("UNRATE")
+
+series = hd(data["seriess"])
+
+IO.puts("""
+Title:       #{series["title"]}
+Frequency:   #{series["frequency"]}
+Units:       #{series["units"]}
+Seasonal:    #{series["seasonal_adjustment"]}
+Last Update: #{series["last_updated"]}
+""")
+
+series
+```
+
+## Fetching Observations
+
+Now let's pull the actual unemployment rate data from 2000 onward.
+
+```elixir
+{:ok, obs_data} =
+  Fred.Series.observations("UNRATE",
+    observation_start: "2000-01-01",
+    frequency: "m"
+  )
+
+# Parse into a list of maps with proper types for plotting
+observations =
+  obs_data["observations"]
+  |> Enum.reject(fn obs -> obs["value"] == "." end)
+  |> Enum.map(fn obs ->
+    %{
+      "date" => obs["date"],
+      "value" => String.to_float(obs["value"])
+    }
+  end)
+
+IO.puts("Fetched #{length(observations)} observations")
+IO.puts("Date range: #{List.first(observations)["date"]} to #{List.last(observations)["date"]}")
+
+# Preview the first few rows
+Enum.take(observations, 5)
+```
+
+## Plotting with VegaLite
+
+A simple line chart of the unemployment rate over time.
+
+```elixir
+Vl.new(width: 700, height: 400, title: "U.S. Unemployment Rate (2000–Present)")
+|> Vl.data_from_values(observations)
+|> Vl.mark(:line, tooltip: true, color: "#2563eb")
+|> Vl.encode_field(:x, "date",
+  type: :temporal,
+  title: "Date",
+  axis: [format: "%Y"]
+)
+|> Vl.encode_field(:y, "value",
+  type: :quantitative,
+  title: "Unemployment Rate (%)",
+  scale: [zero: false]
+)
+```
+
+## Adding Context with an Area Chart
+
+Let's shade the area under the curve and highlight recession-era spikes.
+
+```elixir
+Vl.new(width: 700, height: 400, title: "U.S. Unemployment Rate — Area View")
+|> Vl.data_from_values(observations)
+|> Vl.mark(:area,
+  tooltip: true,
+  color: "#2563eb",
+  opacity: 0.3,
+  line: [color: "#2563eb"]
+)
+|> Vl.encode_field(:x, "date",
+  type: :temporal,
+  title: "Date",
+  axis: [format: "%Y"]
+)
+|> Vl.encode_field(:y, "value",
+  type: :quantitative,
+  title: "Unemployment Rate (%)",
+  scale: [zero: true]
+)
+```
+
+## Using FRED's Built-in Transformations
+
+FRED can compute percent changes server-side via the `units` parameter.
+Let's look at **month-over-month percent change** in the unemployment rate.
+
+```elixir
+{:ok, pch_data} =
+  Fred.Series.observations("UNRATE",
+    observation_start: "2000-01-01",
+    frequency: "m",
+    units: "pch"
+  )
+
+pch_observations =
+  pch_data["observations"]
+  |> Enum.reject(fn obs -> obs["value"] == "." end)
+  |> Enum.map(fn obs ->
+    value = String.to_float(obs["value"])
+
+    %{
+      "date" => obs["date"],
+      "value" => value,
+      "direction" => if(value >= 0, do: "Increase", else: "Decrease")
+    }
+  end)
+
+Vl.new(
+  width: 700,
+  height: 400,
+  title: "Unemployment Rate — Month-over-Month % Change"
+)
+|> Vl.data_from_values(pch_observations)
+|> Vl.mark(:bar, tooltip: true)
+|> Vl.encode_field(:x, "date",
+  type: :temporal,
+  title: "Date",
+  axis: [format: "%Y"]
+)
+|> Vl.encode_field(:y, "value",
+  type: :quantitative,
+  title: "% Change"
+)
+|> Vl.encode_field(:color, "direction",
+  type: :nominal,
+  scale: [domain: ["Increase", "Decrease"], range: ["#ef4444", "#22c55e"]],
+  legend: nil
+)
+```
+
+## Searching for Series
+
+You can search FRED's full catalog. Let's find the most popular series
+related to "inflation".
+
+```elixir
+{:ok, search_results} =
+  Fred.Series.search("inflation",
+    order_by: "popularity",
+    sort_order: "desc",
+    limit: 10
+  )
+
+search_results["seriess"]
+|> Enum.map(fn s ->
+  %{
+    id: s["id"],
+    title: s["title"],
+    frequency: s["frequency_short"],
+    popularity: s["popularity"]
+  }
+end)
+```
+
+## Browsing Categories
+
+FRED organizes series into a category tree. Let's look at the top-level
+categories (children of the root category `0`).
+
+```elixir
+{:ok, cats} = Fred.Categories.children(0)
+
+cats["categories"]
+|> Enum.map(fn c -> %{id: c["id"], name: c["name"]} end)
+```
+
+That's the basics! Head to the next notebook to see how to compare multiple
+economic indicators on a single chart.
+
+<!-- livebook:{"offset":5062,"stamp":{"token":"XCP.RX-EppxMzH63RAJtGayoXQwndjCdXd6vsA1yVvt0oL_END1E8e5IT0xCkdWn0BnSuRNAKnocIBjtFgEsMu5gZb_LgZ0Vf0tUIsQBtIp8KPp-0GB3xz0D","version":2}} -->
