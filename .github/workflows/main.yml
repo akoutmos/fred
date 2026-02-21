@@ -2,6 +2,7 @@ name: Fred CI
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
 
 on:
   push:
