@@ -23,6 +23,8 @@ defmodule Fred.Sources do
       Fred.Sources.releases(1, order_by: "name")
   """
 
+  alias Fred.Client
+
   @doc """
   Get all sources of economic data.
 
@@ -40,9 +42,9 @@ defmodule Fred.Sources do
 
       Fred.Sources.list(limit: 10, order_by: "name")
   """
-  @spec list(keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec list(keyword()) :: Client.response()
   def list(opts \\ []) do
-    Fred.Client.get("/sources", opts)
+    Client.get_json("/sources", opts)
   end
 
   @doc """
@@ -59,11 +61,10 @@ defmodule Fred.Sources do
 
       Fred.Sources.get(1)  # Board of Governors
   """
-  @spec get(integer(), keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec get(integer(), keyword()) :: Client.response()
   def get(source_id, opts \\ []) do
-    opts
-    |> Keyword.put(:source_id, source_id)
-    |> then(&Fred.Client.get("/source", &1))
+    params = Keyword.put(opts, :source_id, source_id)
+    Client.get_json("/source", params)
   end
 
   @doc """
@@ -85,10 +86,9 @@ defmodule Fred.Sources do
 
       Fred.Sources.releases(1, order_by: "name")
   """
-  @spec releases(integer(), keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec releases(integer(), keyword()) :: Client.response()
   def releases(source_id, opts \\ []) do
-    opts
-    |> Keyword.put(:source_id, source_id)
-    |> then(&Fred.Client.get("/source/releases", &1))
+    params = Keyword.put(opts, :source_id, source_id)
+    Client.get_json("/source/releases", params)
   end
 end

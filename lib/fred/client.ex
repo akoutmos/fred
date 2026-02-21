@@ -13,8 +13,14 @@ defmodule Fred.Client do
   See `Fred.Telemetry` for event names, measurements, and metadata.
   """
 
-  @type params :: keyword() | map()
-  @type response :: {:ok, map()} | {:error, Fred.Error.t()}
+  alias Fred.Error
+  alias Fred.Telemetry
+  alias Req.Response
+
+  @type response :: {:ok, map()} | {:error, Error.t()}
+
+  @api_host "api.stlouisfed.org/fred"
+  @maps_host "api.stlouisfed.org/geofred"
 
   @doc """
   Makes a GET request to the given FRED API endpoint.
@@ -32,33 +38,16 @@ defmodule Fred.Client do
       Fred.Client.get("/series", series_id: "GDP")
       Fred.Client.get("/series/observations", series_id: "UNRATE", limit: 10)
   """
-  @spec get(String.t(), params()) :: response()
-  def get(endpoint, params \\ []) do
-    params =
-      params
-      |> normalize_params()
-      |> Map.put(:api_key, Fred.api_key())
-      |> Map.put(:file_type, "json")
+  @spec get_json(endpoint :: String.t(), params :: keyword()) :: response()
+  def get_json(endpoint, params \\ []) do
+    params = Keyword.put(params, :file_type, "json")
+    url = generate_url(@api_host, endpoint)
 
-    base_url = Fred.base_url()
-    url = base_url <> endpoint
-    timeout = Application.get_env(:fred, :recv_timeout, 30_000)
-    metadata = Fred.Telemetry.build_metadata(endpoint, base_url, params)
-
-    Fred.Telemetry.span(metadata, fn ->
-      execute_request(url, params, timeout)
+    url
+    |> Telemetry.build_metadata(params)
+    |> Telemetry.span(fn ->
+      execute_request(url, params)
     end)
-  end
-
-  @doc """
-  Same as `get/2` but raises on error.
-  """
-  @spec get!(String.t(), params()) :: map()
-  def get!(endpoint, params \\ []) do
-    case get(endpoint, params) do
-      {:ok, result} -> result
-      {:error, error} -> raise error
-    end
   end
 
   @doc """
@@ -69,54 +58,60 @@ defmodule Fred.Client do
 
   ## Parameters
 
-    - `url` — The full URL to request
-    - `params` — A map of query parameters (should already include `:api_key`)
-    - `endpoint` — The logical endpoint name for telemetry (e.g. `"/geofred/shapes/file"`)
-    - `base_url` — The base URL for telemetry metadata
+    - `url` - The full URL to request
+    - `params` - A map of query parameters (should already include `:api_key`)
+    - `endpoint` - The logical endpoint name for telemetry (e.g. `"/geofred/shapes/file"`)
+    - `base_url` - The base URL for telemetry metadata
   """
-  @spec get_raw(String.t(), map(), String.t(), String.t()) :: response()
-  def get_raw(url, params, endpoint, base_url) do
-    timeout = Application.get_env(:fred, :recv_timeout, 30_000)
-    metadata = Fred.Telemetry.build_metadata(endpoint, base_url, params)
+  @spec get_map_json(endpoint :: String.t(), params :: keyword()) :: response()
+  def get_map_json(endpoint, params \\ []) do
+    params = Keyword.put(params, :file_type, "json")
+    url = generate_url(@maps_host, endpoint)
 
-    Fred.Telemetry.span(metadata, fn ->
-      execute_request(url, params, timeout)
+    url
+    |> Telemetry.build_metadata(params)
+    |> Telemetry.span(fn ->
+      execute_request(url, params)
     end)
   end
 
   # Shared request execution used by both `get/2` and `get_raw/4`.
-  defp execute_request(url, params, timeout) do
-    case Req.get(url, params: params, receive_timeout: timeout) do
-      {:ok, %Req.Response{status: 200, body: body}} when is_map(body) ->
-        {:ok, body}
-
-      {:ok, %Req.Response{status: 200, body: body}} when is_binary(body) ->
-        case JSON.decode(body) do
-          {:ok, decoded} -> {:ok, decoded}
-          {:error, _} -> {:error, Fred.Error.new(:parse_error, "Failed to parse JSON response")}
-        end
-
-      {:ok, %Req.Response{status: status, body: body}} when is_map(body) ->
-        message = body["error_message"] || "HTTP #{status}"
-        {:error, Fred.Error.new(:api_error, message, status)}
-
-      {:ok, %Req.Response{status: status, body: body}} ->
-        {:error, Fred.Error.new(:api_error, "HTTP #{status}: #{inspect(body)}", status)}
-
-      {:error, %Req.TransportError{reason: reason}} ->
-        {:error, Fred.Error.new(:transport_error, "Transport error: #{inspect(reason)}")}
+  defp execute_request(url, params) do
+    with timeout <- Application.get_env(:fred, :timeout, 30_000),
+         {:ok, params} <- prepare_params(params),
+         {:ok, %Response{status: 200, body: body}} <- Req.get(url, params: params, receive_timeout: timeout) do
+      {:ok, body}
+    else
+      {:ok, %Response{status: status, body: body}} ->
+        {:error, Error.new(:api_error, "HTTP #{status}: #{inspect(body)}", status)}
 
       {:error, exception} ->
-        {:error, Fred.Error.new(:request_error, "Request failed: #{inspect(exception)}")}
+        {:error, Error.new(:request_error, "Request failed: #{inspect(exception)}")}
+
+      {:error, error_code, message} ->
+        {:error, Error.new(error_code, "Library error: #{message}")}
     end
   end
 
-  # Normalize params: convert keyword list to map, remove nil values,
-  # convert Date/DateTime to strings, convert lists to comma-separated strings.
+  defp prepare_params(params) do
+    with {:ok, api_key} <- fetch_api_key() do
+      prepared_params =
+        params
+        |> normalize_params()
+        |> Map.put(:api_key, api_key)
+
+      {:ok, prepared_params}
+    end
+  end
+
   defp normalize_params(params) do
     params
-    |> Enum.reject(fn {_k, v} -> is_nil(v) end)
-    |> Enum.map(fn {k, v} -> {k, serialize_value(v)} end)
+    |> Enum.reject(fn {_k, v} ->
+      is_nil(v)
+    end)
+    |> Enum.map(fn {k, v} ->
+      {k, serialize_value(v)}
+    end)
     |> Map.new()
   end
 
@@ -124,4 +119,29 @@ defmodule Fred.Client do
   defp serialize_value(%DateTime{} = dt), do: DateTime.to_iso8601(dt)
   defp serialize_value(list) when is_list(list), do: Enum.join(list, ",")
   defp serialize_value(value), do: value
+
+  defp generate_url(host, endpoint) do
+    URI
+    |> struct(scheme: "https", host: host, path: endpoint)
+    |> URI.to_string()
+  end
+
+  defp fetch_api_key do
+    case Application.get_env(:fred, :api_key) do
+      nil ->
+        {:error, :missing_api_key,
+         """
+         FRED API key has not been configured. Set one via your application configuration:
+
+         config :fred,
+           api_key: "YOUR_API_KEY"
+
+         Register for a free key at:
+         https://fred.stlouisfed.org/docs/api/api_key.html
+         """}
+
+      key ->
+        {:ok, key}
+    end
+  end
 end

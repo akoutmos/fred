@@ -93,35 +93,4 @@ defmodule Fred do
     timeout: 30_000                             # Optional. Request timeout in ms (default 30s)
   ```
   """
-
-  @doc """
-  Returns the configured API key. Raises an error if the
-  API key has not been configured.
-  """
-  @spec api_key!() :: String.t()
-  def api_key! do
-    case Application.get_env(:fred, :api_key) do
-      nil ->
-        raise """
-        FRED API key has not been configured. Set one via your application configuration:
-
-        config :fred,
-          api_key: "YOUR_API_KEY"
-
-        Register for a free key at:
-        https://fred.stlouisfed.org/docs/api/api_key.html
-        """
-
-      key ->
-        key
-    end
-  end
-
-  @doc """
-  Returns the base URL for the FRED API.
-  """
-  @spec base_url() :: String.t()
-  def base_url do
-    "https://api.stlouisfed.org/fred"
-  end
 end

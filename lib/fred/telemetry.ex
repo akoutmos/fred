@@ -83,18 +83,6 @@ defmodule Fred.Telemetry do
   """
 
   @doc """
-  Returns all telemetry event names emitted by this library.
-  """
-  @spec events() :: [list(atom())]
-  def events do
-    [
-      [:fred, :request, :start],
-      [:fred, :request, :stop],
-      [:fred, :request, :exception]
-    ]
-  end
-
-  @doc """
   Executes `fun` inside a `:telemetry.span/3` for `[:fred, :request]`.
 
   This is used internally by `Fred.Client` and `Fred.Maps` and should not
@@ -110,11 +98,10 @@ defmodule Fred.Telemetry do
   The function's return value is augmented with telemetry metadata and
   passed through transparently.
   """
-  @spec span(map(), (-> {:ok, map()} | {:error, Fred.Error.t()})) ::
-          {:ok, map()} | {:error, Fred.Error.t()}
-  def span(metadata, fun) when is_map(metadata) and is_function(fun, 0) do
+  @spec span(keyword(), (-> Client.response())) :: Client.response()
+  def span(metadata, func) when is_map(metadata) and is_function(func, 0) do
     :telemetry.span([:fred, :request], metadata, fn ->
-      case fun.() do
+      case func.() do
         {:ok, _body} = result ->
           extra = %{status: 200, result: :ok}
           {result, Map.merge(metadata, extra)}
@@ -127,14 +114,14 @@ defmodule Fred.Telemetry do
   end
 
   @doc """
-  Builds the metadata map for a request, redacting the API key from params.
+  Builds the telemetry metadata map for a request making sure to redact
+  the API key from params.
   """
-  @spec build_metadata(String.t(), String.t(), map()) :: map()
-  def build_metadata(endpoint, base_url, params) do
+  @spec build_metadata(String.t(), keyword()) :: keyword()
+  def build_metadata(url, params \\ []) do
     %{
-      endpoint: endpoint,
-      base_url: base_url,
-      params: Map.delete(params, :api_key)
+      url: url,
+      params: Keyword.replace(params, :api_key, "**REDACTED**")
     }
   end
 end

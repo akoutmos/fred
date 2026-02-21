@@ -39,6 +39,8 @@ defmodule Fred.Tags do
       Fred.Tags.series(tag_names: "slovenia;food;oecd")
   """
 
+  alias Fred.Client
+
   @doc """
   Get FRED tags, optionally filtered by tag name, group, or search text.
 
@@ -68,9 +70,9 @@ defmodule Fred.Tags do
       # Search for tags
       Fred.Tags.list(search_text: "inflation")
   """
-  @spec list(keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec list(keyword()) :: Client.response()
   def list(opts \\ []) do
-    Fred.Client.get("/tags", opts)
+    Client.get_json("/tags", opts)
   end
 
   @doc """
@@ -98,9 +100,9 @@ defmodule Fred.Tags do
 
       Fred.Tags.related(tag_names: "monetary aggregates;m1")
   """
-  @spec related(keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec related(keyword()) :: Client.response()
   def related(opts \\ []) do
-    Fred.Client.get("/related_tags", opts)
+    Client.get_json("/related_tags", opts)
   end
 
   @doc """
@@ -125,8 +127,8 @@ defmodule Fred.Tags do
 
       Fred.Tags.series(tag_names: "slovenia;food;oecd", limit: 10)
   """
-  @spec series(keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec series(keyword()) :: Client.response()
   def series(opts \\ []) do
-    Fred.Client.get("/tags/series", opts)
+    Client.get_json("/tags/series", opts)
   end
 end

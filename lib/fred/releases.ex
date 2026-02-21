@@ -30,6 +30,8 @@ defmodule Fred.Releases do
       Fred.Releases.series(50)
   """
 
+  alias Fred.Client
+
   @doc """
   Get all releases of economic data.
 
@@ -48,9 +50,9 @@ defmodule Fred.Releases do
 
       Fred.Releases.list(limit: 20, order_by: "name")
   """
-  @spec list(keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec list(keyword()) :: Client.response()
   def list(opts \\ []) do
-    Fred.Client.get("/releases", opts)
+    Client.get_json("/releases", opts)
   end
 
   @doc """
@@ -79,9 +81,9 @@ defmodule Fred.Releases do
         sort_order: "desc"
       )
   """
-  @spec dates(keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec dates(keyword()) :: Client.response()
   def dates(opts \\ []) do
-    Fred.Client.get("/releases/dates", opts)
+    Client.get_json("/releases/dates", opts)
   end
 
   @doc """
@@ -98,11 +100,10 @@ defmodule Fred.Releases do
 
       Fred.Releases.get(53)  # GDP release
   """
-  @spec get(integer(), keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec get(integer(), keyword()) :: Client.response()
   def get(release_id, opts \\ []) do
-    opts
-    |> Keyword.put(:release_id, release_id)
-    |> then(&Fred.Client.get("/release", &1))
+    params = Keyword.put(opts, :release_id, release_id)
+    Client.get_json("/release", params)
   end
 
   @doc """
@@ -123,11 +124,10 @@ defmodule Fred.Releases do
 
       Fred.Releases.release_dates(53, sort_order: "desc", limit: 5)
   """
-  @spec release_dates(integer(), keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec release_dates(integer(), keyword()) :: Client.response()
   def release_dates(release_id, opts \\ []) do
-    opts
-    |> Keyword.put(:release_id, release_id)
-    |> then(&Fred.Client.get("/release/dates", &1))
+    params = Keyword.put(opts, :release_id, release_id)
+    Client.get_json("/release/dates", params)
   end
 
   @doc """
@@ -155,11 +155,10 @@ defmodule Fred.Releases do
 
       Fred.Releases.series(50, order_by: "popularity", sort_order: "desc")
   """
-  @spec series(integer(), keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec series(integer(), keyword()) :: Client.response()
   def series(release_id, opts \\ []) do
-    opts
-    |> Keyword.put(:release_id, release_id)
-    |> then(&Fred.Client.get("/release/series", &1))
+    params = Keyword.put(opts, :release_id, release_id)
+    Client.get_json("/release/series", params)
   end
 
   @doc """
@@ -176,11 +175,10 @@ defmodule Fred.Releases do
 
       Fred.Releases.sources(50)
   """
-  @spec sources(integer(), keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec sources(integer(), keyword()) :: Client.response()
   def sources(release_id, opts \\ []) do
-    opts
-    |> Keyword.put(:release_id, release_id)
-    |> then(&Fred.Client.get("/release/sources", &1))
+    params = Keyword.put(opts, :release_id, release_id)
+    Client.get_json("/release/sources", params)
   end
 
   @doc """
@@ -205,11 +203,10 @@ defmodule Fred.Releases do
 
       Fred.Releases.tags(50, tag_group_id: "gen")
   """
-  @spec tags(integer(), keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec tags(integer(), keyword()) :: Client.response()
   def tags(release_id, opts \\ []) do
-    opts
-    |> Keyword.put(:release_id, release_id)
-    |> then(&Fred.Client.get("/release/tags", &1))
+    params = Keyword.put(opts, :release_id, release_id)
+    Client.get_json("/release/tags", params)
   end
 
   @doc """
@@ -234,11 +231,10 @@ defmodule Fred.Releases do
 
       Fred.Releases.related_tags(50, tag_names: "sa;quarterly")
   """
-  @spec related_tags(integer(), keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec related_tags(integer(), keyword()) :: Client.response()
   def related_tags(release_id, opts \\ []) do
-    opts
-    |> Keyword.put(:release_id, release_id)
-    |> then(&Fred.Client.get("/release/related_tags", &1))
+    params = Keyword.put(opts, :release_id, release_id)
+    Client.get_json("/release/related_tags", params)
   end
 
   @doc """
@@ -256,10 +252,9 @@ defmodule Fred.Releases do
 
       Fred.Releases.tables(53)
   """
-  @spec tables(integer(), keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec tables(integer(), keyword()) :: Client.response()
   def tables(release_id, opts \\ []) do
-    opts
-    |> Keyword.put(:release_id, release_id)
-    |> then(&Fred.Client.get("/release/tables", &1))
+    params = Keyword.put(opts, :release_id, release_id)
+    Client.get_json("/release/tables", params)
   end
 end

@@ -30,6 +30,8 @@ defmodule Fred.Categories do
       )
   """
 
+  alias Fred.Client
+
   @doc """
   Get a category.
 
@@ -44,11 +46,10 @@ defmodule Fred.Categories do
 
       Fred.Categories.get(125)
   """
-  @spec get(integer(), keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec get(category_id :: integer(), opts :: keyword()) :: Client.response()
   def get(category_id, opts \\ []) do
-    opts
-    |> Keyword.put(:category_id, category_id)
-    |> then(&Fred.Client.get("/category", &1))
+    params = Keyword.put(opts, :category_id, category_id)
+    Client.get_json("/category", params)
   end
 
   @doc """
@@ -65,11 +66,10 @@ defmodule Fred.Categories do
 
       Fred.Categories.children(0)
   """
-  @spec children(integer(), keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec children(integer(), keyword()) :: Client.response()
   def children(category_id, opts \\ []) do
-    opts
-    |> Keyword.put(:category_id, category_id)
-    |> then(&Fred.Client.get("/category/children", &1))
+    params = Keyword.put(opts, :category_id, category_id)
+    Client.get_json("/category/children", params)
   end
 
   @doc """
@@ -89,11 +89,10 @@ defmodule Fred.Categories do
 
       Fred.Categories.related(32073)
   """
-  @spec related(integer(), keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec related(integer(), keyword()) :: Client.response()
   def related(category_id, opts \\ []) do
-    opts
-    |> Keyword.put(:category_id, category_id)
-    |> then(&Fred.Client.get("/category/related", &1))
+    params = Keyword.put(opts, :category_id, category_id)
+    Client.get_json("/category/related", params)
   end
 
   @doc """
@@ -121,11 +120,10 @@ defmodule Fred.Categories do
 
       Fred.Categories.series(125, limit: 10, order_by: "popularity", sort_order: "desc")
   """
-  @spec series(integer(), keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec series(integer(), keyword()) :: Client.response()
   def series(category_id, opts \\ []) do
-    opts
-    |> Keyword.put(:category_id, category_id)
-    |> then(&Fred.Client.get("/category/series", &1))
+    params = Keyword.put(opts, :category_id, category_id)
+    Client.get_json("/category/series", params)
   end
 
   @doc """
@@ -151,11 +149,10 @@ defmodule Fred.Categories do
 
       Fred.Categories.tags(125, tag_group_id: "freq")
   """
-  @spec tags(integer(), keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec tags(integer(), keyword()) :: Client.response()
   def tags(category_id, opts \\ []) do
-    opts
-    |> Keyword.put(:category_id, category_id)
-    |> then(&Fred.Client.get("/category/tags", &1))
+    params = Keyword.put(opts, :category_id, category_id)
+    Client.get_json("/category/tags", params)
   end
 
   @doc """
@@ -183,10 +180,9 @@ defmodule Fred.Categories do
 
       Fred.Categories.related_tags(125, tag_names: "services;quarterly")
   """
-  @spec related_tags(integer(), keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec related_tags(integer(), keyword()) :: Client.response()
   def related_tags(category_id, opts \\ []) do
-    opts
-    |> Keyword.put(:category_id, category_id)
-    |> then(&Fred.Client.get("/category/related_tags", &1))
+    params = Keyword.put(opts, :category_id, category_id)
+    Client.get_json("/category/related_tags", params)
   end
 end

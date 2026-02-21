@@ -47,6 +47,8 @@ defmodule Fred.Maps do
       )
   """
 
+  alias Fred.Client
+
   @base_url "https://api.stlouisfed.org/geofred"
 
   @doc """
@@ -107,7 +109,7 @@ defmodule Fred.Maps do
 
       Fred.Maps.series_group("SMU56000000500000001a")
   """
-  @spec series_group(String.t(), keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec series_group(String.t(), keyword()) :: Client.response()
   def series_group(series_id, opts \\ []) do
     params = build_params(opts, series_id: series_id, file_type: "json")
     Fred.Client.get_raw("#{@base_url}/series/group", params, "/geofred/series/group", @base_url)
@@ -127,7 +129,7 @@ defmodule Fred.Maps do
 
       Fred.Maps.series_data("WIPCPI")
   """
-  @spec series_data(String.t(), keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec series_data(String.t(), keyword()) :: Client.response()
   def series_data(series_id, opts \\ []) do
     params = build_params(opts, series_id: series_id, file_type: "json")
     Fred.Client.get_raw("#{@base_url}/series/data", params, "/geofred/series/data", @base_url)
@@ -159,7 +161,7 @@ defmodule Fred.Maps do
         frequency: "a"
       )
   """
-  @spec regional_data(keyword()) :: {:ok, map()} | {:error, Fred.Error.t()}
+  @spec regional_data(keyword()) :: Client.response()
   def regional_data(opts \\ []) do
     params = build_params(opts, file_type: "json")
     Fred.Client.get_raw("#{@base_url}/regional/data", params, "/geofred/regional/data", @base_url)
@@ -171,6 +173,6 @@ defmodule Fred.Maps do
     |> Keyword.merge(opts)
     |> Enum.reject(fn {_k, v} -> is_nil(v) end)
     |> Map.new()
-    |> Map.put(:api_key, Fred.api_key())
+    |> Map.put(:api_key, Fred.api_key!())
   end
 end
