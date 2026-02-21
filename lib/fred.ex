@@ -1,48 +1,58 @@
 defmodule Fred do
   @moduledoc """
-  Elixir client for the FRED (Federal Reserve Economic Data) API.
+  Elixir client for the [FRED (Federal Reserve Economic Data) API](https://fred.stlouisfed.org/docs/api/fred/).
 
-  The FRED API provides access to hundreds of thousands of economic data series
+  The FRED API provides access to thousands of economic data series
   from the Federal Reserve Bank of St. Louis.
 
   ## Setup
 
-  Add your FRED API key to your config:
+  In order to use the FRED API client library, you'll need to have
+  an account with FRED so that you can use the API. You can create
+  an account for free from the [FRED website](https://fred.stlouisfed.org/docs/api/api_key.html)
 
-      # config/config.exs
-      config :fred, api_key: "your_api_key_here"
+  After you have created an account, you can configure this library
+  via your config file like so:
 
-  Or set the `FRED_API_KEY` environment variable.
+  ```elixir
+  # config/runtime.exs
+  import Config
 
-  You can register for a free API key at:
-  https://fred.stlouisfed.org/docs/api/api_key.html
+  config :fred,
+    api_key: System.fetch_env!("FRED_API_KEY")
+  ```
 
-  ## Quick Start
+  With your API key configured, you can now make calls to the FRED API
+  to fetch economic data.
 
-      # Get info about a series
-      Fred.Series.get("GDP")
+  ## Run Your First Query
 
-      # Get observations (the actual data values)
-      Fred.Series.observations("UNRATE",
-        observation_start: "2020-01-01",
-        frequency: "q"
-      )
+  With your API key configured, you can make calls to the FRED API like so:
 
-      # Search for series
-      Fred.Series.search("unemployment rate",
-        order_by: "popularity",
-        limit: 10
-      )
-
-      # Browse categories
-      Fred.Categories.get(0)  # root category
+  ```elixir
+  iex(1)> Fred.Series.get("GDP")
+  {:ok,
+   %{
+     "realtime_end" => "2026-02-20",
+     "realtime_start" => "2026-02-20",
+     "seriess" => [
+       %{
+         "frequency" => "Quarterly",
+         "frequency_short" => "Q",
+         "id" => "GDP",
+         ...
+       }
+     ]
+   }}
+  ```
 
   ## API Coverage
 
-  This library covers the complete FRED API v1:
+  This library provides coverage for the whole
+  [FRED v1 API](https://fred.stlouisfed.org/docs/api/fred/) including Maps:
 
   - `Fred.Categories` — Browse and explore the category tree
-  - `Fred.Series` — Fetch series metadata, observations, search, tags, and more
+  - `Fred.Series` — Fetch series metadata, observations, search, and tags
   - `Fred.Releases` — Get information about data releases
   - `Fred.Sources` — Get information about data sources
   - `Fred.Tags` — Browse and search tags assigned to series
@@ -50,41 +60,53 @@ defmodule Fred do
 
   ## Telemetry
 
-  Every API request emits telemetry events via `[:fred, :request]` spans.
-  Attach the built-in logger for quick observability:
+  So that you have the ability to hook into requests being made to FRED,
+  this library emits telemetry events whenever an API call is made. The
+  following telemetry events are emitted:
 
-      # In your Application.start/2:
-      Fred.Telemetry.Logger.attach()
+  - [:fred, :request, :init, :start] - When an API request is initiated
+  - [:fred, :request, :init, :stop] - When an API call completes
+  - [:fred, :request, :init, :exception] - When an exception occurs during the API call
 
-  Or attach your own handlers — see `Fred.Telemetry` for event details.
+  For more details on the measurements and metadata provided in each
+  event, be sure to take a look at the `Fred.Telemetry` module docs.
+
+  ### Default Logger
+
+  For your convenience, this library provides a default Logger that
+  leverages the aforementioned telemetry events. You can set up the
+  default Logger by running the following in your `Application.start/2`
+  callback:
+
+  ```elixir
+  Fred.Telemetry.Logger.attach()
+  ```
 
   ## Configuration Options
 
-      config :fred,
-        api_key: "your_key",       # Required. Your FRED API key
-        base_url: "https://...",   # Optional. Override API base URL
-        recv_timeout: 30_000       # Optional. Request timeout in ms (default 30s)
+  Aside from your FRED API key, you can also configure the timeout
+  for each request to the API:
+
+  ```elixir
+  config :fred,
+    api_key: System.fetch_env!("FRED_API_KEY"), # Required. Your FRED API key
+    timeout: 30_000                             # Optional. Request timeout in ms (default 30s)
+  ```
   """
 
   @doc """
-  Returns the configured API key.
-
-  Looks up the key in the following order:
-  1. Application config (`:fred, :api_key`)
-  2. System environment variable `FRED_API_KEY`
-
-  Raises if no key is found.
+  Returns the configured API key. Raises an error if the
+  API key has not been configured.
   """
-  @spec api_key() :: String.t()
-  def api_key do
-    case Application.get_env(:fred, :api_key) || System.get_env("FRED_API_KEY") do
+  @spec api_key!() :: String.t()
+  def api_key! do
+    case Application.get_env(:fred, :api_key) do
       nil ->
         raise """
-        No FRED API key configured. Set one via:
+        FRED API key has not been configured. Set one via your application configuration:
 
-          config :fred, api_key: "your_key"
-
-        Or set the FRED_API_KEY environment variable.
+        config :fred,
+          api_key: "YOUR_API_KEY"
 
         Register for a free key at:
         https://fred.stlouisfed.org/docs/api/api_key.html
@@ -96,10 +118,10 @@ defmodule Fred do
   end
 
   @doc """
-  Returns the configured base URL for the FRED API.
+  Returns the base URL for the FRED API.
   """
   @spec base_url() :: String.t()
   def base_url do
-    Application.get_env(:fred, :base_url, "https://api.stlouisfed.org/fred")
+    "https://api.stlouisfed.org/fred"
   end
 end
