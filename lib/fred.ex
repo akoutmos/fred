@@ -65,9 +65,9 @@ defmodule Fred do
   this library emits telemetry events whenever an API call is made. The
   following telemetry events are emitted:
 
-  - [:fred, :request, :init, :start] - When an API request is initiated
-  - [:fred, :request, :init, :stop] - When an API call completes
-  - [:fred, :request, :init, :exception] - When an exception occurs during the API call
+  - `[:fred, :request, :init, :start]` - When an API request is initiated
+  - `[:fred, :request, :init, :stop]` - When an API call completes
+  - `[:fred, :request, :init, :exception]` - When an exception occurs during the API call
 
   For more details on the measurements and metadata provided in each
   event, be sure to take a look at the `Fred.Telemetry` module docs.

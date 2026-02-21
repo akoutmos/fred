@@ -52,6 +52,22 @@ defmodule Fred.MixProject do
       main: "readme",
       source_ref: "master",
       logo: "guides/images/logo.png",
+      groups_for_modules: [
+        "Data API Modules": [
+          Fred.Categories,
+          Fred.Maps,
+          Fred.Releases,
+          Fred.Series,
+          Fred.Sources,
+          Fred.Tags
+        ],
+        "Supporting Modules": [
+          Fred.Client,
+          Fred.Geo,
+          Fred.Telemetry,
+          Fred.Telemetry.Logger
+        ]
+      ],
       extras: ["README.md", "CHANGELOG.md" | livebooks],
       groups_for_extras: [
         General: ["README.md", "CHANGELOG.md"],
