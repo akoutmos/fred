@@ -7,9 +7,10 @@ defmodule Fred do
 
   ## Setup
 
-  In order to use the FRED API client library, you'll need to have
-  an account with FRED so that you can use the API. You can create
-  an account for free from the [FRED website](https://fred.stlouisfed.org/docs/api/api_key.html)
+  In order to use this FRED API client library, you'll need to have
+  an account with FRED so that you can use the API.
+  You can create an account for free from the
+  [FRED website](https://fred.stlouisfed.org/docs/api/api_key.html)
 
   After you have created an account, you can configure this library
   via your config file like so:

@@ -99,11 +99,11 @@ defmodule Fred.Client do
       {:ok, %Response{status: status, body: body}} ->
         {:error, Error.new(:api_error, "HTTP #{status}: #{inspect(body)}", status)}
 
-      {:error, exception} ->
-        {:error, Error.new(:request_error, "Request failed: #{inspect(exception)}")}
-
       {:error, error_code, message} ->
         {:error, Error.new(error_code, "Library error: #{message}")}
+
+      {:error, exception} ->
+        {:error, Error.new(:request_error, "Request failed: #{inspect(exception)}")}
     end
   end
 
