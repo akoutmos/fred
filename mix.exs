@@ -39,11 +39,24 @@ defmodule Fred.MixProject do
   end
 
   defp docs do
+    livebooks =
+      __DIR__
+      |> Path.join("livebooks")
+      |> File.ls!()
+      |> Enum.map(fn livebook ->
+        Path.join("livebooks", livebook)
+      end)
+      |> Enum.sort()
+
     [
       main: "readme",
       source_ref: "master",
       logo: "guides/images/logo.png",
-      extras: ["README.md"]
+      extras: ["README.md", "CHANGELOG.md" | livebooks],
+      groups_for_extras: [
+        General: ["README.md", "CHANGELOG.md"],
+        Livebooks: Path.wildcard("livebooks/*.livemd")
+      ]
     ]
   end
 

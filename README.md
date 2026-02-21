@@ -295,15 +295,15 @@ Fred.Series.observations("UNRATE", observation_start: ~D[2020-01-01])
 
 ## Livebook Notebooks
 
-The `notebooks/` directory contains interactive [Livebook](https://livebook.dev)
+The `livebooks/` directory contains interactive [Livebook](https://livebook.dev)
 notebooks that demonstrate the library with live charts:
 
 | Notebook                                                                     | Description                                                                           |
 | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| [`01_getting_started.livemd`](notebooks/01_getting_started.livemd)           | Series lookup, observations, search, area charts, and FRED's built-in transformations |
-| [`02_comparing_indicators.livemd`](notebooks/02_comparing_indicators.livemd) | Multi-series overlays, normalized comparisons, Treasury yield curves                  |
-| [`03_inflation_deep_dive.livemd`](notebooks/03_inflation_deep_dive.livemd)   | CPI vs. Core vs. PCE, category breakdowns, heatmaps, Fed response                     |
-| [`04_geofred_maplibre.livemd`](notebooks/04_geofred_maplibre.livemd)         | GeoFRED shapes on MapLibre, Geo struct integration, unemployment choropleth           |
+| [`1_getting_started.livemd`](./livebooks/1_getting_started.livemd)           | Series lookup, observations, search, area charts, and FRED's built-in transformations |
+| [`2_comparing_indicators.livemd`](./livebooks/2_comparing_indicators.livemd) | Multi-series overlays, normalized comparisons, Treasury yield curves                  |
+| [`3_inflation_deep_dive.livemd`](./livebooks/3_inflation_deep_dive.livemd)   | CPI vs. Core vs. PCE, category breakdowns, heatmaps, Fed response                     |
+| [`4_geofred_maplibre.livemd`](./livebooks/4_geo_fred_maplibre.livemd)        | GeoFRED shapes on MapLibre, Geo struct integration, unemployment choropleth           |
 
 To run them, open Livebook, set the `FRED_API_KEY` environment variable, and
 open any `.livemd` file. Notebooks 01–03 use [VegaLite](https://hexdocs.pm/vega_lite)
