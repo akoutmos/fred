@@ -75,6 +75,20 @@ defmodule Fred.Client do
     end)
   end
 
+  @doc """
+  Docs coming soon
+  """
+  @spec get_map_raw(endpoint :: String.t(), params :: keyword()) :: response()
+  def get_map_raw(endpoint, params \\ []) do
+    url = generate_url(@maps_host, endpoint)
+
+    url
+    |> Telemetry.build_metadata(params)
+    |> Telemetry.span(fn ->
+      execute_request(url, params)
+    end)
+  end
+
   # Shared request execution used by both `get/2` and `get_raw/4`.
   defp execute_request(url, params) do
     with timeout <- Application.get_env(:fred, :timeout, 30_000),

@@ -40,14 +40,6 @@ defmodule Fred.Geo do
   """
 
   @doc """
-  Returns `true` if the `geo` library is available.
-  """
-  @spec available?() :: boolean()
-  def available? do
-    Code.ensure_loaded?(Geo.JSON)
-  end
-
-  @doc """
   Decodes a GeoJSON map into Geo structs.
 
   Accepts any GeoJSON object: a `FeatureCollection`, a single `Feature`,
@@ -80,11 +72,7 @@ defmodule Fred.Geo do
   """
   @spec decode(map()) :: {:ok, term()} | {:error, term()}
   def decode(geojson) when is_map(geojson) do
-    if available?() do
-      Geo.JSON.decode(geojson)
-    else
-      {:error, geo_not_available_error()}
-    end
+    Geo.JSON.decode(geojson)
   end
 
   @doc """
@@ -94,7 +82,6 @@ defmodule Fred.Geo do
   def decode!(geojson) when is_map(geojson) do
     case decode(geojson) do
       {:ok, result} -> result
-      {:error, :geo_not_available} -> raise geo_not_available_error()
       {:error, reason} -> raise ArgumentError, "Failed to decode GeoJSON: #{inspect(reason)}"
     end
   end
@@ -117,23 +104,19 @@ defmodule Fred.Geo do
   @spec decode_geometries(map()) :: {:ok, [struct()]} | {:error, term()}
   def decode_geometries(%{"type" => "FeatureCollection", "features" => features})
       when is_list(features) do
-    if available?() do
-      geometries =
-        features
-        |> Enum.map(fn feature -> feature["geometry"] end)
-        |> Enum.reject(&is_nil/1)
-        |> Enum.map(fn geom ->
-          case Geo.JSON.decode(geom) do
-            {:ok, decoded} -> decoded
-            {:error, _} -> nil
-          end
-        end)
-        |> Enum.reject(&is_nil/1)
+    geometries =
+      features
+      |> Enum.map(fn feature -> feature["geometry"] end)
+      |> Enum.reject(&is_nil/1)
+      |> Enum.map(fn geom ->
+        case Geo.JSON.decode(geom) do
+          {:ok, decoded} -> decoded
+          {:error, _} -> nil
+        end
+      end)
+      |> Enum.reject(&is_nil/1)
 
-      {:ok, geometries}
-    else
-      {:error, geo_not_available_error()}
-    end
+    {:ok, geometries}
   end
 
   def decode_geometries(_), do: {:error, :not_a_feature_collection}
@@ -149,11 +132,7 @@ defmodule Fred.Geo do
   """
   @spec encode(struct()) :: {:ok, map()} | {:error, term()}
   def encode(geo_struct) do
-    if available?() do
-      Geo.JSON.encode(geo_struct)
-    else
-      {:error, geo_not_available_error()}
-    end
+    Geo.JSON.encode(geo_struct)
   end
 
   @doc """
@@ -163,22 +142,7 @@ defmodule Fred.Geo do
   def encode!(geo_struct) do
     case encode(geo_struct) do
       {:ok, result} -> result
-      {:error, :geo_not_available} -> raise geo_not_available_error()
       {:error, reason} -> raise ArgumentError, "Failed to encode Geo struct: #{inspect(reason)}"
     end
-  end
-
-  defp geo_not_available_error do
-    %Fred.Error{
-      type: :dependency_missing,
-      message: """
-      The `geo` library is required for GeoJSON struct conversion but is not installed.
-
-      Add it to your dependencies:
-
-          {:geo, "~> 3.6 or ~> 4.0"}
-      """,
-      status: nil
-    }
   end
 end

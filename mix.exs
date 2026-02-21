@@ -53,9 +53,7 @@ defmodule Fred.MixProject do
       # Required dependencies
       {:req, "~> 0.5"},
       {:telemetry, "~> 1.3"},
-
-      # Optional dependencies
-      {:geo, "~> 3.6 or ~> 4.0", optional: true},
+      {:geo, "~> 3.6 or ~> 4.0"},
 
       # Development deps
       {:dialyxir, "~> 1.4", only: :dev, runtime: false},
