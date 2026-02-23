@@ -27,6 +27,16 @@ defmodule Fred.Utils do
     |> NimbleOptions.new!()
   end
 
+  defp generate_field_spec({:date, field, description}) do
+    [
+      {field,
+       [
+         doc: description,
+         type: {:struct, Date}
+       ]}
+    ]
+  end
+
   defp generate_field_spec(:realtime_range) do
     [
       realtime_start: [
@@ -98,20 +108,19 @@ defmodule Fred.Utils do
 
   defp generate_field_spec(:tag_group_id) do
     possible_values = [
-      :freq,
-      :gen,
-      :geo,
-      :geot,
-      :rls,
-      :seas,
-      :src,
-      :cc
+      freq: "Frequency",
+      gen: "General or Concept",
+      geo: "Geography",
+      geot: "Geography Type",
+      rls: "Release",
+      seas: "Seasonal Adjustment",
+      src: "Source"
     ]
 
     [
       tag_group_id: [
         doc: "Tag group filter. #{generate_in_doc_list(possible_values)}",
-        type: {:in, possible_values},
+        type: {:in, Keyword.keys(possible_values)},
         type_doc: "`t:atom/0`"
       ]
     ]
@@ -132,6 +141,113 @@ defmodule Fred.Utils do
     ]
   end
 
+  defp generate_field_spec(:aggregation_method) do
+    possible_values = [
+      avg: "Average",
+      sum: "Sum",
+      eop: "End of period"
+    ]
+
+    [
+      aggregation_method: [
+        doc: "How the data should be aggregated. #{generate_in_doc_list(possible_values)}",
+        type: {:in, Keyword.keys(possible_values)},
+        type_doc: "`t:atom/0`"
+      ]
+    ]
+  end
+
+  defp generate_field_spec(:transformation) do
+    possible_values = [
+      lin: "Levels (no transformation, default)",
+      chg: "Change",
+      ch1: "Change from year ago",
+      pch: "Percent change",
+      pc1: "Percent change from year ago",
+      pca: "Compounded annual rate of change",
+      cch: "Continuously compounded rate of change",
+      cca: "Continuously compounded annual rate of change",
+      log: "Natural Log"
+    ]
+
+    [
+      transformation: [
+        doc: "Data transformation. #{generate_in_doc_list(possible_values)}",
+        type: {:in, Keyword.keys(possible_values)},
+        type_doc: "`t:atom/0`"
+      ]
+    ]
+  end
+
+  defp generate_field_spec(:season) do
+    possible_values = [
+      SA: "Seasonally Adjusted",
+      NSA: "Not Seasonally Adjusted",
+      SSA: "Smoothed Seasonally Adjusted",
+      SAAR: "Seasonally Adjusted Annual Rate",
+      NSAAR: "Not Seasonally Adjusted Annual Rate"
+    ]
+
+    [
+      season: [
+        doc: "Seasonal adjustment filter. #{generate_in_doc_list(possible_values)}",
+        type: {:in, Keyword.keys(possible_values)},
+        type_doc: "`t:atom/0`"
+      ]
+    ]
+  end
+
+  defp generate_field_spec(:units) do
+    possible_values = [
+      lin: "Levels (no transformation, default)",
+      chg: "Change",
+      ch1: "Change from year ago",
+      pch: "Percent change",
+      pc1: "Percent change from year ago",
+      pca: "Compounded annual rate of change",
+      cch: "Continuously compounded rate of change",
+      cca: "Continuously compounded annual rate of change",
+      log: "Natural Log"
+    ]
+
+    [
+      units: [
+        doc: "Data value transformation. #{generate_in_doc_list(possible_values)}",
+        type: {:in, Keyword.keys(possible_values)},
+        type_doc: "`t:atom/0`"
+      ]
+    ]
+  end
+
+  defp generate_field_spec(:frequency) do
+    possible_values = [
+      d: "Daily",
+      w: "Weekly",
+      bw: "Biweekly",
+      m: "Monthly",
+      q: "Quarterly",
+      sa: "Semiannual",
+      a: "Annual",
+      wef: "Weekly, Ending Friday",
+      weth: "Weekly, Ending Thursday",
+      wew: "Weekly, Ending Wednesday",
+      wetu: "Weekly, Ending Tuesday",
+      wem: "Weekly, Ending Monday",
+      wesu: "Weekly, Ending Sunday",
+      wesa: "Weekly, Ending Saturday",
+      bwew: "Biweekly, Ending Wednesday",
+      bwem: "Biweekly, Ending Monday"
+    ]
+
+    [
+      frequency: [
+        doc: "Frequency filter. #{generate_in_doc_list(possible_values)}",
+        type: {:in, Keyword.keys(possible_values)},
+        type_doc: "`t:atom/0`"
+      ]
+    ]
+  end
+
   def validate_range(value, range) do
     if is_integer(value) and value in range do
       {:ok, value}
@@ -143,8 +259,12 @@ defmodule Fred.Utils do
   defp generate_in_doc_list(sortable_fields) do
     value_list =
       sortable_fields
-      |> Enum.map_join("\n", fn field ->
-        "- `#{inspect(field)}`"
+      |> Enum.map_join("\n", fn
+        {field, description} ->
+          "- `#{inspect(field)}` - #{description}"
+
+        field ->
+          "- `#{inspect(field)}`"
       end)
 
     "Supported values are:\n#{value_list}"

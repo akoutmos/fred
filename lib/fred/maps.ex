@@ -3,84 +3,59 @@ defmodule Fred.Maps do
   Functions for the FRED Maps (GeoFRED) API endpoints.
 
   The GeoFRED API provides access to geographic/regional economic data and shape
-  files. Not all FRED series have geographic data available.
+  files. Not all FRED series have geographic data available. The shapes endpoint
+  specifically returns GeoJSON which can then be parsed by the `Geo` library to
+  be turned into `Geo` structs.
 
   ## Endpoints
 
-    - `shapes/2` — Get shape files for a geographic type
-    - `series_group/2` — Get series group metadata
-    - `series_data/2` — Get series data for a geographic region
-    - `regional_data/2` — Get regional data for a series group
+    - `shapes/1` — [`/geofred/shapes/file`](https://fred.stlouisfed.org/docs/api/geofred/shapes.html)
+    - `series_group/1` — [`/geofred/series/group`](https://fred.stlouisfed.org/docs/api/geofred/series_group.html)
+    - `series_data/2` — [`/geofred/series/data`](https://fred.stlouisfed.org/docs/api/geofred/series_data.html)
+    - `regional_data/4` — [`/geofred/regional/data`](https://fred.stlouisfed.org/docs/api/geofred/regional_data.html)
 
-  ## Geo Integration
-
-  The shapes endpoint returns GeoJSON. If you have the
-  [`geo`](https://hex.pm/packages/geo) library installed, you can decode the
-  response into native `Geo` structs by passing `decode: :geo`:
-
-      {:ok, features} = Fred.Maps.shapes("state", decode: :geo)
-      hd(features).geometry
-      #=> %Geo.MultiPolygon{coordinates: [...], srid: 4326}
-
-  See `Fred.Geo` for more conversion utilities.
-
-  > #### Coordinate System {: .warning}
+  > #### Coordinate System {: .info}
   >
   > The GeoFRED shapes endpoint returns coordinates
   > as quantized integers, not standard WGS84 longitude/latitude. These shapes
   > cannot be rendered directly on web maps (MapLibre, Leaflet, etc.) without
   > dequantization. For map rendering, use standard GeoJSON boundary files from
-  > sources like the US Census Bureau and use `Fred.Maps.regional_data/1` or
+  > sources like the US Census Bureau and use `Fred.Maps.regional_data/4` or
   > `Fred.Series` for the economic data.
-
-  ## Examples
-
-      # Get shape files for US states
-      Fred.Maps.shapes("state")
-
-      # Get regional unemployment data
-      Fred.Maps.regional_data(
-        series_group: "882",
-        region_type: "state",
-        date: "2023-01-01",
-        frequency: "a"
-      )
   """
 
   alias Fred.Client
+  alias Fred.Utils
+
+  @series_data_schema Utils.generate_schema([
+                        {:date, :date, "The observation date."},
+                        {:date, :start_date, "Start of date range."}
+                      ])
 
   @doc """
-  Get shape files for a geographic type.
+  Get shape files for a geographic type. Returns GeoJSON data for the
+  specified shape type.
 
-  Returns GeoJSON data for the specified shape type. When the `geo` library is
-  installed, you can pass `decode: :geo` to automatically convert the response
-  into `Geo` structs.
+  The `shape` argument must be one of the following values:
 
-  ## Parameters
-
-    - `shape` — The shape type. One of: `"bea"`, `"msa"`, `"frb"`, `"necta"`,
-      `"state"`, `"country"`, `"county"`, `"censusregion"`, `"censusdivision"`
-    - `opts` — Optional parameters:
-      - `:decode` — Set to `:geo` to decode the GeoJSON response into `Geo`
-        structs (requires the `geo` package). Default: `nil` (returns raw maps)
+  - `:bea` - Bureau of Economic Anaylis Region
+  - `:msa` - Metropolitan Statistical Area
+  - `:frb` - Federal Reserve Bank Districts
+  - `:necta` - New England City and Town Area
+  - `:state`
+  - `:country`
+  - `:county` - USA Counties
+  - `:censusregion` - US Census Regions
+  - `:censusdivision` - US Census Divisons
 
   ## Examples
 
-      # Raw GeoJSON maps (no extra dependency needed)
-      {:ok, geojson} = Fred.Maps.shapes("state")
-      geojson["features"] |> length()
-
-      # Decoded into Geo structs (requires {:geo, "~> 4.0"})
-      {:ok, features} = Fred.Maps.shapes("state", decode: :geo)
-      hd(features).geometry
-      #=> %Geo.MultiPolygon{coordinates: [...], srid: 4326}
+      iex> {:ok, geojson} = Fred.Maps.shapes("state")
+      iex> %Geo.GeometryCollection{geometries: [_ | _]} = geojson
   """
-  @spec shapes(String.t(), keyword()) ::
-          {:ok, map() | list()} | {:error, Fred.Error.t()}
-  def shapes(shape, opts \\ []) do
-    params = Keyword.put(opts, :shape, shape)
-
-    case Client.get_map_raw("/shapes/file", params) do
+  @spec shapes(shape :: String.t()) :: {:ok, map() | list()} | {:error, Fred.Error.t()}
+  def shapes(shape) do
+    case Client.get_map_raw("/shapes/file", shape: shape) do
       {:ok, body} ->
         Geo.JSON.decode(body)
 
@@ -92,71 +67,88 @@ defmodule Fred.Maps do
   @doc """
   Get the series group information for a regional data series.
 
-  ## Parameters
+  ## Examples
 
-    - `series_id` — The FRED series ID
-    - `opts` — Optional parameters (none currently defined)
-
-  ## Example
-
-      Fred.Maps.series_group("SMU56000000500000001a")
+      iex> {:ok, series_group} = Fred.Maps.series_group("SMU56000000500000001a")
+      iex> %{"series_group" => _series_group} = series_group
   """
-  @spec series_group(String.t(), keyword()) :: Client.response()
-  def series_group(series_id, opts \\ []) do
-    params = Keyword.put(opts, :series_id, series_id)
-    Client.get_map_json("/series/group", params)
+  @spec series_group(series_id :: String.t()) :: Client.response()
+  def series_group(series_id) do
+    Client.get_map_json("/series/group", series_id: series_id)
   end
 
   @doc """
   Get series data for a geographic region.
 
-  ## Parameters
+  ## Options
 
-    - `series_id` — The FRED series ID
-    - `opts` — Optional parameters:
-      - `:date` — The observation date (YYYY-MM-DD)
-      - `:start_date` — Start of date range (YYYY-MM-DD)
+    #{NimbleOptions.docs(@series_data_schema)}
 
-  ## Example
+  ## Examples
 
-      Fred.Maps.series_data("WIPCPI")
+      iex> {:ok, _wisconsin_cpi} = Fred.Maps.series_data("WIPCPI")
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Maps.series_data("WIPCPI", date: "Bad Input")
   """
-  @spec series_data(String.t(), keyword()) :: Client.response()
+  @spec series_data(series_id :: String.t(), opts :: keyword()) :: Client.response()
   def series_data(series_id, opts \\ []) do
-    params = Keyword.put(opts, :series_id, series_id)
-    Client.get_map_json("/series/data", params)
+    with :ok <- Utils.validate_opts(opts, @series_data_schema) do
+      params = Keyword.put(opts, :series_id, series_id)
+      Client.get_map_json("/series/data", params)
+    end
   end
+
+  @regional_data_schema Utils.generate_schema([
+                          :frequency,
+                          :units,
+                          :season,
+                          :transformation,
+                          :aggregation_method,
+                          {:date, :start_date, "Start of date range."}
+                        ])
 
   @doc """
   Get regional economic data by series group.
 
-  ## Parameters
+  The `region_type` argument must be one of:
 
-    - `opts` — Required and optional parameters:
-      - `:series_group` — **Required.** The series group ID string
-      - `:region_type` — **Required.** One of: `"bea"`, `"msa"`, `"frb"`,
-        `"necta"`, `"state"`, `"country"`, `"county"`, `"censusregion"`,
-        `"censusdivision"`
-      - `:date` — **Required.** The observation date (YYYY-MM-DD)
-      - `:frequency` — Frequency filter
-      - `:units` — Units filter (`"lin"`, `"chg"`, `"pch"`, etc.)
-      - `:season` — Seasonal adjustment filter (`"SA"`, `"NSA"`, `"SSA"`)
-      - `:start_date` — Start of date range (YYYY-MM-DD)
-      - `:transformation` — Data transformation
+  - `:bea`
+  - `:msa`
+  - `:frb`
+  - `:necta`
+  - `:state`
+  - `:country`
+  - `:county`
+  - `:censusregion`
 
-  ## Example
+  ## Options
 
-      Fred.Maps.regional_data(
-        series_group: "882",
-        region_type: "state",
-        date: "2023-01-01",
-        frequency: "a",
-        units: "lin",
-        season: "NSA"
-      )
+    #{NimbleOptions.docs(@regional_data_schema)}
+
+  ## Examples
+
+      iex> {:ok, _} =
+      ...>   Fred.Maps.regional_data(
+      ...>     "882",
+      ...>     :state,
+      ...>     ~D[2023-01-01],
+      ...>     frequency: :a,
+      ...>     units: :lin,
+      ...>     season: :NSA
+      ...>   )
   """
-  @spec regional_data(keyword()) :: Client.response()
-  def regional_data(opts \\ []) do
-    Client.get_map_json("/regional/data", opts)
+  @spec regional_data(series_group :: String.t(), region_type :: String.t(), date :: Date.t(), keyword()) ::
+          Client.response()
+  def regional_data(series_group, region_type, date, opts \\ []) do
+    with :ok <- Utils.validate_opts(opts, @regional_data_schema) do
+      opts =
+        opts
+        |> Keyword.put(:series_group, series_group)
+        |> Keyword.put(:region_type, region_type)
+        |> Keyword.put(:date, date)
+
+      Client.get_map_json("/regional/data", opts)
+    end
   end
 end
