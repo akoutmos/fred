@@ -5,7 +5,7 @@ defmodule Fred.Client do
   Handles request construction, parameter serialization, response parsing,
   and telemetry instrumentation.
 
-  All endpoint modules delegate to this module for actual HTTP communication.
+  All endpoint modules delegate to this module for actual HTTP calls.
 
   ## Telemetry
 
@@ -23,20 +23,11 @@ defmodule Fred.Client do
   @maps_host "api.stlouisfed.org/geofred"
 
   @doc """
-  Makes a GET request to the given FRED API endpoint.
+  Makes a GET request to the provided FRED API endpoint.
 
   Automatically injects the API key, sets `file_type=json`, and emits
-  telemetry events around the request.
-
-  ## Parameters
-
-    - `endpoint` — The API path, e.g. `"/series"` or `"/series/observations"`
-    - `params` — A keyword list or map of query parameters
-
-  ## Examples
-
-      Fred.Client.get("/series", series_id: "GDP")
-      Fred.Client.get("/series/observations", series_id: "UNRATE", limit: 10)
+  telemetry events around the request. `params` should contain the query
+  parameters required for the endpoint.
   """
   @spec get_json(endpoint :: String.t(), params :: keyword()) :: response()
   def get_json(endpoint, params \\ []) do
@@ -51,17 +42,9 @@ defmodule Fred.Client do
   end
 
   @doc """
-  Makes a GET request to an arbitrary URL with telemetry instrumentation.
-
-  Used internally by `Fred.Maps` for the GeoFRED base URL. The `endpoint`
-  and `base_url` are provided explicitly for telemetry metadata.
-
-  ## Parameters
-
-    - `url` - The full URL to request
-    - `params` - A map of query parameters (should already include `:api_key`)
-    - `endpoint` - The logical endpoint name for telemetry (e.g. `"/geofred/shapes/file"`)
-    - `base_url` - The base URL for telemetry metadata
+  Makes a GET request to the provided FRED Maps API endpoint. Used internally
+  by `Fred.Maps` for the GeoFRED base URL. `params` should contain the query
+  parameters required for the endpoint.
   """
   @spec get_map_json(endpoint :: String.t(), params :: keyword()) :: response()
   def get_map_json(endpoint, params \\ []) do
@@ -76,7 +59,8 @@ defmodule Fred.Client do
   end
 
   @doc """
-  Docs coming soon
+  Makes a GET request to the provided FRED Maps API endpoint. Used internally
+  by `Fred.Maps` to get shape files versus JSON.
   """
   @spec get_map_raw(endpoint :: String.t(), params :: keyword()) :: response()
   def get_map_raw(endpoint, params \\ []) do

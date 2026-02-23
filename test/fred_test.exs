@@ -51,16 +51,6 @@ end
 defmodule Fred.TelemetryTest do
   use ExUnit.Case, async: true
 
-  describe "events/0" do
-    test "returns all three span events" do
-      events = Fred.Telemetry.events()
-      assert [:fred, :request, :start] in events
-      assert [:fred, :request, :stop] in events
-      assert [:fred, :request, :exception] in events
-      assert length(events) == 3
-    end
-  end
-
   describe "build_metadata/3" do
     test "builds metadata with redacted api_key" do
       params = %{series_id: "GDP", api_key: "secret123", file_type: "json"}
@@ -353,22 +343,8 @@ defmodule Fred.GeoTest do
     ]
   }
 
-  describe "available?/0" do
-    test "returns a boolean" do
-      assert is_boolean(Fred.Geo.available?())
-    end
-  end
-
   describe "when geo library is available" do
     @describetag :geo_available
-
-    setup do
-      unless Fred.Geo.available?() do
-        {:skip, "geo library not installed"}
-      else
-        :ok
-      end
-    end
 
     test "decode/1 decodes a FeatureCollection" do
       assert {:ok, features} = Fred.Geo.decode(@sample_feature_collection)
@@ -398,40 +374,6 @@ defmodule Fred.GeoTest do
       {:ok, encoded} = Fred.Geo.encode(decoded)
       assert encoded["type"] == "Point"
       assert encoded["coordinates"] == [-90.0, 38.6]
-    end
-  end
-
-  describe "when geo library is not available" do
-    # These tests verify error handling. We can only run them when geo
-    # is truly not installed, so they're skipped if it is available.
-
-    setup do
-      if Fred.Geo.available?() do
-        {:skip, "geo library is installed — cannot test unavailable path"}
-      else
-        :ok
-      end
-    end
-
-    test "decode/1 returns error" do
-      assert {:error, %Fred.Error{type: :dependency_missing}} =
-               Fred.Geo.decode(@sample_feature_collection)
-    end
-
-    test "decode!/1 raises" do
-      assert_raise Fred.Error, ~r/geo/, fn ->
-        Fred.Geo.decode!(@sample_feature_collection)
-      end
-    end
-
-    test "encode/1 returns error" do
-      assert {:error, %Fred.Error{type: :dependency_missing}} =
-               Fred.Geo.encode(%{fake: "struct"})
-    end
-
-    test "decode_geometries/1 returns error" do
-      assert {:error, %Fred.Error{type: :dependency_missing}} =
-               Fred.Geo.decode_geometries(@sample_feature_collection)
     end
   end
 

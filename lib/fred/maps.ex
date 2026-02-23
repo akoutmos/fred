@@ -82,7 +82,7 @@ defmodule Fred.Maps do
 
     case Client.get_map_raw("/shapes/file", params) do
       {:ok, body} ->
-        Fred.Geo.decode(body)
+        Geo.JSON.decode(body)
 
       error ->
         error

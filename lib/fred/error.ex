@@ -4,11 +4,11 @@ defmodule Fred.Error do
 
   ## Error Types
 
-    - `:api_error` — The FRED API returned a non-200 status code
-    - `:parse_error` — Failed to parse the API response
-    - `:transport_error` — Network/connection error
-    - `:request_error` — Other request failure
-    - `:dependency_missing` — An optional dependency is not installed
+    - `:api_error` - The FRED API returned a non-200 status code
+    - `:parse_error` - Failed to parse the API response
+    - `:request_error` - Other request failure
+    - `:missing_api_key` - An API key was not configured for the Fred library
+    - `:option_error` - The provided options for a given function were malformed
   """
 
   @type error_type ::
