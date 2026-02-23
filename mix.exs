@@ -83,6 +83,8 @@ defmodule Fred.MixProject do
       {:req, "~> 0.5"},
       {:telemetry, "~> 1.3"},
       {:geo, "~> 3.6 or ~> 4.0"},
+      {:nimble_options, "~> 1.0"},
+      {:explorer, "~> 0.11"},
 
       # Development deps
       {:dialyxir, "~> 1.4", only: :dev, runtime: false},

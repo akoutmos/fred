@@ -12,7 +12,7 @@ defmodule Fred.Error do
   """
 
   @type error_type ::
-          :api_error | :parse_error | :request_error | :missing_api_key
+          :api_error | :parse_error | :request_error | :missing_api_key | :option_error
 
   @type t :: %__MODULE__{
           type: error_type(),
