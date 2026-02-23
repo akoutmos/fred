@@ -137,6 +137,9 @@ defmodule Fred.Maps do
       ...>     units: :lin,
       ...>     season: :NSA
       ...>   )
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Maps.regional_data("882", :state, ~D[2023-01-01], units: "Bad Input")
   """
   @spec regional_data(series_group :: String.t(), region_type :: String.t(), date :: Date.t(), keyword()) ::
           Client.response()
