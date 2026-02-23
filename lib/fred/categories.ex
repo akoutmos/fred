@@ -22,16 +22,7 @@ defmodule Fred.Categories do
   alias Fred.Client
   alias Fred.Utils
 
-  @children_schema NimbleOptions.new!(
-                     realtime_start: [
-                       doc: "Start of the real-time period",
-                       type: {:struct, Date}
-                     ],
-                     realtime_end: [
-                       doc: "End of the real-time period",
-                       type: {:struct, Date}
-                     ]
-                   )
+  @children_schema Utils.generate_schema([:realtime_range])
 
   @doc """
   Get the child categories for a specified parent category.
@@ -109,26 +100,34 @@ defmodule Fred.Categories do
     end
   end
 
+  @series_schema Utils.generate_schema([
+                   :realtime_range,
+                   :tag_names,
+                   :filter_variable_value,
+                   {:pagination, 1_000},
+                   {:order_by,
+                    [
+                      :series_id,
+                      :title,
+                      :units,
+                      :frequency,
+                      :seasonal_adjustment,
+                      :realtime_start,
+                      :realtime_end,
+                      :last_updated,
+                      :observation_start,
+                      :observation_end,
+                      :popularity,
+                      :group_popularity
+                    ]}
+                 ])
+
   @doc """
   Get the series in a category.
 
-  ## Parameters
+  ## Options
 
-    - `category_id` — The ID of the category
-    - `opts` — Optional parameters:
-      - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` — End of the real-time period (YYYY-MM-DD)
-      - `:limit` — Max results (1–1000, default: 1000)
-      - `:offset` — Result offset (default: 0)
-      - `:order_by` — One of: `"series_id"`, `"title"`, `"units"`, `"frequency"`,
-        `"seasonal_adjustment"`, `"realtime_start"`, `"realtime_end"`,
-        `"last_updated"`, `"observation_start"`, `"observation_end"`, `"popularity"`,
-        `"group_popularity"`
-      - `:sort_order` — `"asc"` or `"desc"`
-      - `:filter_variable` — One of: `"frequency"`, `"units"`, `"seasonal_adjustment"`
-      - `:filter_value` — Value to filter by (requires `:filter_variable`)
-      - `:tag_names` — Semicolon-delimited tag names to match
-      - `:exclude_tag_names` — Semicolon-delimited tag names to exclude
+    #{NimbleOptions.docs(@series_schema)}
 
   ## Examples
 
@@ -144,9 +143,8 @@ defmodule Fred.Categories do
   @doc """
   Get the FRED tags for a category.
 
-  ## Parameters
+  ## Options
 
-    - `category_id` — The ID of the category
     - `opts` — Optional parameters:
       - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
       - `:realtime_end` — End of the real-time period (YYYY-MM-DD)
@@ -176,9 +174,8 @@ defmodule Fred.Categories do
 
   Related tags are tags assigned to series that match all tags in `:tag_names`.
 
-  ## Parameters
+  ## Options
 
-    - `category_id` — The ID of the category
     - `opts` — Required and optional parameters:
       - `:tag_names` — **Required.** Semicolon-delimited tag names
       - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
