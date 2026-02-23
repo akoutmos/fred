@@ -69,15 +69,50 @@ defmodule Fred.Utils do
     ]
   end
 
+  defp generate_field_spec(:search_text) do
+    [
+      tag_names: [
+        doc: "Text to search tag names.",
+        type: :string
+      ]
+    ]
+  end
+
   defp generate_field_spec(:tag_names) do
     [
       tag_names: [
         doc: "Semicolon-delimited tag names to match.",
         type: :string
-      ],
+      ]
+    ]
+  end
+
+  defp generate_field_spec(:exclude_tag_names) do
+    [
       exclude_tag_names: [
         doc: "Semicolon-delimited tag names to exclude.",
         type: :string
+      ]
+    ]
+  end
+
+  defp generate_field_spec(:tag_group_id) do
+    possible_values = [
+      :freq,
+      :gen,
+      :geo,
+      :geot,
+      :rls,
+      :seas,
+      :src,
+      :cc
+    ]
+
+    [
+      tag_group_id: [
+        doc: "Tag group filter. #{generate_in_doc_list(possible_values)}",
+        type: {:in, possible_values},
+        type_doc: "`t:atom/0`"
       ]
     ]
   end

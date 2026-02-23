@@ -24,6 +24,64 @@ defmodule Fred.Categories do
 
   @children_schema Utils.generate_schema([:realtime_range])
 
+  @series_schema Utils.generate_schema([
+                   :realtime_range,
+                   :exclude_tag_names,
+                   :tag_names,
+                   :filter_variable_value,
+                   {:pagination, 1_000},
+                   {:order_by,
+                    [
+                      :series_id,
+                      :title,
+                      :units,
+                      :frequency,
+                      :seasonal_adjustment,
+                      :realtime_start,
+                      :realtime_end,
+                      :last_updated,
+                      :observation_start,
+                      :observation_end,
+                      :popularity,
+                      :group_popularity
+                    ]}
+                 ])
+
+  @tags_schema Utils.generate_schema([
+                 :realtime_range,
+                 :tag_names,
+                 :filter_variable_value,
+                 :search_text,
+                 :tag_group_id,
+                 {:pagination, 1_000},
+                 {:order_by,
+                  [
+                    :series_count,
+                    :popularity,
+                    :created,
+                    :name,
+                    :group_id
+                  ]}
+               ])
+
+  @related_tags_schema Utils.generate_schema([
+                         :realtime_range,
+                         :tag_names,
+                         :exclude_tag_names,
+                         :filter_variable_value,
+                         :search_text,
+                         :tag_group_id,
+                         {:pagination, 1_000},
+                         {:order_by,
+                          [
+                            :series_count,
+                            :popularity,
+                            :created,
+                            :name,
+                            :group_id
+                          ]}
+                       ])
+
   @doc """
   Get the child categories for a specified parent category.
 
@@ -100,28 +158,6 @@ defmodule Fred.Categories do
     end
   end
 
-  @series_schema Utils.generate_schema([
-                   :realtime_range,
-                   :tag_names,
-                   :filter_variable_value,
-                   {:pagination, 1_000},
-                   {:order_by,
-                    [
-                      :series_id,
-                      :title,
-                      :units,
-                      :frequency,
-                      :seasonal_adjustment,
-                      :realtime_start,
-                      :realtime_end,
-                      :last_updated,
-                      :observation_start,
-                      :observation_end,
-                      :popularity,
-                      :group_popularity
-                    ]}
-                 ])
-
   @doc """
   Get the series in a category.
 
@@ -131,13 +167,15 @@ defmodule Fred.Categories do
 
   ## Examples
 
-      iex> {:ok, series} = Fred.Categories.series(125, limit: 10, order_by: "popularity", sort_order: "desc")
+      iex> {:ok, series} = Fred.Categories.series(125, limit: 10, order_by: :popularity, sort_order: :desc)
       iex> %{"seriess" => [_ | _]} = series
   """
   @spec series(category :: integer(), opts :: keyword()) :: Client.response()
   def series(category_id, opts \\ []) do
-    params = Keyword.put(opts, :category_id, category_id)
-    Client.get_json("/category/series", params)
+    with :ok <- Utils.validate_opts(opts, @series_schema) do
+      params = Keyword.put(opts, :category_id, category_id)
+      Client.get_json("/category/series", params)
+    end
   end
 
   @doc """
@@ -145,28 +183,19 @@ defmodule Fred.Categories do
 
   ## Options
 
-    - `opts` — Optional parameters:
-      - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` — End of the real-time period (YYYY-MM-DD)
-      - `:tag_names` — Semicolon-delimited tag names to filter by
-      - `:tag_group_id` — Tag group filter. One of: `"freq"`, `"gen"`, `"geo"`,
-        `"geot"`, `"rls"`, `"seas"`, `"src"`, `"cc"`
-      - `:search_text` — Text to search tag names and values
-      - `:limit` — Max results (1–1000, default: 1000)
-      - `:offset` — Result offset (default: 0)
-      - `:order_by` — One of: `"series_count"`, `"popularity"`, `"created"`,
-        `"name"`, `"group_id"`
-      - `:sort_order` — `"asc"` or `"desc"`
+    #{NimbleOptions.docs(@tags_schema)}
 
   ## Examples
 
-      iex> {:ok, tags} = Fred.Categories.tags(125, tag_group_id: "freq")
+      iex> {:ok, tags} = Fred.Categories.tags(125, tag_group_id: :freq)
       iex> %{"tags" => [_ | _]} = tags
   """
   @spec tags(category :: integer(), opts :: keyword()) :: Client.response()
   def tags(category_id, opts \\ []) do
-    params = Keyword.put(opts, :category_id, category_id)
-    Client.get_json("/category/tags", params)
+    with :ok <- Utils.validate_opts(opts, @tags_schema) do
+      params = Keyword.put(opts, :category_id, category_id)
+      Client.get_json("/category/tags", params)
+    end
   end
 
   @doc """
@@ -176,18 +205,7 @@ defmodule Fred.Categories do
 
   ## Options
 
-    - `opts` — Required and optional parameters:
-      - `:tag_names` — **Required.** Semicolon-delimited tag names
-      - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` — End of the real-time period (YYYY-MM-DD)
-      - `:exclude_tag_names` — Semicolon-delimited tag names to exclude
-      - `:tag_group_id` — Tag group filter
-      - `:search_text` — Text to search tag names and values
-      - `:limit` — Max results (1–1000, default: 1000)
-      - `:offset` — Result offset (default: 0)
-      - `:order_by` — One of: `"series_count"`, `"popularity"`, `"created"`,
-        `"name"`, `"group_id"`
-      - `:sort_order` — `"asc"` or `"desc"`
+    #{NimbleOptions.docs(@related_tags_schema)}
 
   ## Examples
 
@@ -196,7 +214,9 @@ defmodule Fred.Categories do
   """
   @spec related_tags(category :: integer(), opts :: keyword()) :: Client.response()
   def related_tags(category_id, opts \\ []) do
-    params = Keyword.put(opts, :category_id, category_id)
-    Client.get_json("/category/related_tags", params)
+    with :ok <- Utils.validate_opts(opts, @related_tags_schema) do
+      params = Keyword.put(opts, :category_id, category_id)
+      Client.get_json("/category/related_tags", params)
+    end
   end
 end
