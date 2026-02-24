@@ -37,8 +37,9 @@ defmodule Fred.Series do
       )
   """
 
+  require Explorer.DataFrame
+
   alias Explorer.DataFrame
-  alias Explorer.Series
   alias Fred.Client
 
   @doc """
@@ -156,67 +157,64 @@ defmodule Fred.Series do
     Client.get_json("/series/observations", params)
   end
 
-  @spec observations(list() | String.t(), keyword()) :: {:ok, DataFrame.t()} | {:error, term()}
+  @spec observations(series_ids :: list() | String.t(), opts :: keyword()) :: {:ok, DataFrame.t()} | {:error, term()}
   def observations_as_data_frame(series_ids, opts \\ [])
 
   def observations_as_data_frame(series_ids, opts) when is_list(series_ids) do
     timeout = Application.get_env(:fred, :timeout, 30_000)
 
-    observation_data =
+    data_frame =
       series_ids
       |> Task.async_stream(
         fn series_id ->
-          {series_id, observations(series_id, opts)}
+          case observations(series_id, opts) do
+            {:ok, %{"observations" => observations}} when is_list(observations) ->
+              {series_id, observations}
+
+            _error ->
+              nil
+          end
         end,
         max_concurrency: 5,
         timeout: timeout
       )
-      |> Enum.reduce(%{}, fn
-        {:ok, {series_id, {:ok, %{"observations" => observations}}}}, acc ->
-          formatted_observations =
-            Enum.reduce(observations, %{}, fn %{"date" => date, "value" => value}, acc ->
-              date = Date.from_iso8601!(date)
-              Map.put(acc, date, value)
-            end)
+      |> Enum.reduce([], fn
+        {:ok, observations}, acc when not is_nil(observations) ->
+          [observations | acc]
 
-          Map.put(acc, series_id, formatted_observations)
-
-        _error, acc ->
+        _, acc ->
           acc
       end)
+      |> Enum.flat_map(fn {series_id, observations} ->
+        observations
+        |> Enum.reject(fn
+          %{"value" => "."} -> true
+          %{"value" => nil} -> true
+          _ -> false
+        end)
+        |> Enum.reduce([], fn observation, acc ->
+          case Decimal.parse(observation["value"]) do
+            {value, ""} ->
+              date = Date.from_iso8601!(observation["date"])
+              data = %{date: date, series_id: series_id, value: value}
+              [data | acc]
 
-    all_dates =
-      observation_data
-      |> Enum.reduce(MapSet.new(), fn {_series, data}, acc ->
-        data
-        |> Map.keys()
-        |> MapSet.new()
-        |> MapSet.union(acc)
-      end)
-      |> Enum.sort(Date)
-
-    observation_data
-    |> Enum.reduce(%{"date" => Series.from_list(all_dates)}, fn {series, data}, acc ->
-      formatted_data =
-        Enum.map(all_dates, fn date ->
-          data
-          |> Map.get(date)
-          |> case do
-            "." ->
-              nil
-
-            nil ->
-              nil
-
-            value ->
-              Decimal.new(value)
+            :error ->
+              acc
           end
         end)
-        |> Series.from_list()
+      end)
+      |> DataFrame.new()
 
-      Map.put(acc, series, formatted_data)
-    end)
-    |> DataFrame.new()
+    columns = DataFrame.names(data_frame)
+
+    if "series_id" in columns and "value" in columns do
+      data_frame
+      |> DataFrame.pivot_wider("series_id", "value")
+      |> DataFrame.sort_by(date)
+    else
+      data_frame
+    end
   end
 
   def observations_as_data_frame(series_id, opts) do
