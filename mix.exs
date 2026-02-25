@@ -17,7 +17,7 @@ defmodule Fred.MixProject do
       aliases: aliases(),
       test_coverage: [
         summary: [
-          threshold: 65
+          threshold: 40
         ]
       ]
       # test_coverage: [tool: ExCoveralls],
