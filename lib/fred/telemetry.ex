@@ -121,7 +121,7 @@ defmodule Fred.Telemetry do
   def build_metadata(url, params \\ []) do
     %{
       url: url,
-      params: Keyword.replace(params, :api_key, "**REDACTED**")
+      params: Keyword.delete(params, :api_key)
     }
   end
 end
