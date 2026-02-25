@@ -95,11 +95,13 @@ defmodule Fred.MixProject do
       {:explorer, "~> 0.11"},
 
       # Development deps
-      {:excoveralls, "~> 0.18"},
       {:dialyxir, "~> 1.4", only: :dev, runtime: false},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: :dev},
-      {:doctor, "~> 0.22", only: :dev}
+      {:doctor, "~> 0.22", only: :dev},
+
+      # Test deps
+      {:excoveralls, "~> 0.18", only: :test}
     ]
   end
 
