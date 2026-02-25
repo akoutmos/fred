@@ -82,6 +82,8 @@ defmodule Fred.Telemetry do
       #=> [[:fred, :request, :start], [:fred, :request, :stop], [:fred, :request, :exception]]
   """
 
+  alias Fred.Client
+
   @doc """
   Executes `fun` inside a `:telemetry.span/3` for `[:fred, :request]`.
 
@@ -98,7 +100,7 @@ defmodule Fred.Telemetry do
   The function's return value is augmented with telemetry metadata and
   passed through transparently.
   """
-  @spec span(keyword(), (-> Client.response())) :: Client.response()
+  @spec span(metadata :: map(), func :: (-> Client.response())) :: Client.response()
   def span(metadata, func) when is_map(metadata) and is_function(func, 0) do
     :telemetry.span([:fred, :request], metadata, fn ->
       case func.() do
@@ -117,7 +119,7 @@ defmodule Fred.Telemetry do
   Builds the telemetry metadata map for a request making sure to redact
   the API key from params.
   """
-  @spec build_metadata(String.t(), keyword()) :: keyword()
+  @spec build_metadata(url :: String.t(), params :: keyword()) :: %{:params => Keyword.t(), :url => String.t()}
   def build_metadata(url, params \\ []) do
     %{
       url: url,
