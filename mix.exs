@@ -14,7 +14,15 @@ defmodule Fred.MixProject do
       package: package(),
       deps: deps(),
       docs: docs(),
-      aliases: aliases()
+      aliases: aliases(),
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test,
+        "coveralls.cobertura": :test
+      ]
     ]
   end
 
@@ -87,6 +95,7 @@ defmodule Fred.MixProject do
       {:explorer, "~> 0.11"},
 
       # Development deps
+      {:excoveralls, "~> 0.18"},
       {:dialyxir, "~> 1.4", only: :dev, runtime: false},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: :dev},
