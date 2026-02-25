@@ -15,6 +15,9 @@ defmodule Fred.MixProject do
       deps: deps(),
       docs: docs(),
       aliases: aliases(),
+      dialyzer: [
+        plt_file: {:no_warn, "priv/plts/project.plt"}
+      ],
       test_coverage: [
         summary: [
           threshold: 40
