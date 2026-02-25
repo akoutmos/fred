@@ -9,10 +9,10 @@ defmodule Fred.Maps do
 
   ## Endpoints
 
-    - `shapes/1` — [`/geofred/shapes/file`](https://fred.stlouisfed.org/docs/api/geofred/shapes.html)
-    - `series_group/1` — [`/geofred/series/group`](https://fred.stlouisfed.org/docs/api/geofred/series_group.html)
-    - `series_data/2` — [`/geofred/series/data`](https://fred.stlouisfed.org/docs/api/geofred/series_data.html)
-    - `regional_data/4` — [`/geofred/regional/data`](https://fred.stlouisfed.org/docs/api/geofred/regional_data.html)
+    - `shapes/1` - [`/geofred/shapes/file`](https://fred.stlouisfed.org/docs/api/geofred/shapes.html)
+    - `series_group/1` - [`/geofred/series/group`](https://fred.stlouisfed.org/docs/api/geofred/series_group.html)
+    - `series_data/2` - [`/geofred/series/data`](https://fred.stlouisfed.org/docs/api/geofred/series_data.html)
+    - `regional_data/4` - [`/geofred/regional/data`](https://fred.stlouisfed.org/docs/api/geofred/regional_data.html)
 
   > #### Coordinate System {: .info}
   >

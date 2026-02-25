@@ -11,12 +11,12 @@ defmodule Fred.Categories do
   they map to in the FRED API. Click on the endpoint to go to the FRED documentation for that
   particular endpoint:
 
-    - `children/2` — [`/fred/category/children`](https://fred.stlouisfed.org/docs/api/fred/category_children.html)
-    - `get/2` — [`/fred/category`](https://fred.stlouisfed.org/docs/api/fred/category.html)
-    - `related/2` — [`/fred/category/related`](https://fred.stlouisfed.org/docs/api/fred/category_related.html)
-    - `related_tags/2` — [`/fred/category/related_tags`](https://fred.stlouisfed.org/docs/api/fred/category_related_tags.html)
-    - `series/2` — [`/fred/category/series`](https://fred.stlouisfed.org/docs/api/fred/category_series.html)
-    - `tags/2` — [`/fred/category/tags`](https://fred.stlouisfed.org/docs/api/fred/category_tags.html)
+    - `children/2` - [`/fred/category/children`](https://fred.stlouisfed.org/docs/api/fred/category_children.html)
+    - `get/2` - [`/fred/category`](https://fred.stlouisfed.org/docs/api/fred/category.html)
+    - `related/2` - [`/fred/category/related`](https://fred.stlouisfed.org/docs/api/fred/category_related.html)
+    - `related_tags/2` - [`/fred/category/related_tags`](https://fred.stlouisfed.org/docs/api/fred/category_related_tags.html)
+    - `series/2` - [`/fred/category/series`](https://fred.stlouisfed.org/docs/api/fred/category_series.html)
+    - `tags/2` - [`/fred/category/tags`](https://fred.stlouisfed.org/docs/api/fred/category_tags.html)
   """
 
   alias Fred.Client

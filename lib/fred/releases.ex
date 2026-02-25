@@ -8,51 +8,71 @@ defmodule Fred.Releases do
 
   ## Endpoints
 
-    - `list/1` — `fred/releases` — Get all releases
-    - `dates/1` — `fred/releases/dates` — Get release dates for all releases
-    - `get/2` — `fred/release` — Get a specific release
-    - `release_dates/2` — `fred/release/dates` — Get dates for a specific release
-    - `series/2` — `fred/release/series` — Get series on a release
-    - `sources/2` — `fred/release/sources` — Get sources for a release
-    - `tags/2` — `fred/release/tags` — Get tags for a release
-    - `related_tags/2` — `fred/release/related_tags` — Get related tags for a release
-    - `tables/2` — `fred/release/tables` — Get release tables
-
-  ## Examples
-
-      # List all releases
-      Fred.Releases.list()
-
-      # Get upcoming release dates
-      Fred.Releases.dates(include_release_dates_with_no_data: "true")
-
-      # Get series on the Employment Situation release
-      Fred.Releases.series(50)
+    - `list/1` - [`/fred/releases`](https://fred.stlouisfed.org/docs/api/fred/releases.html) - Get all releases
+    - `dates/1` - [`/fred/releases/dates`](https://fred.stlouisfed.org/docs/api/fred/releases_dates.html) - Get release dates for all releases
+    - `get/2` - [`/fred/release`](https://fred.stlouisfed.org/docs/api/fred/release.html) - Get a specific release
+    - `release_dates/2` - [`/fred/release/dates`](https://fred.stlouisfed.org/docs/api/fred/release_dates.html) - Get dates for a specific release
+    - `series/2` - [`/fred/release/series`](https://fred.stlouisfed.org/docs/api/fred/release_series.html) - Get series on a release
+    - `sources/2` - [`/fred/release/sources`](https://fred.stlouisfed.org/docs/api/fred/release_sources.html) - Get sources for a release
+    - `tags/2` - [`/fred/release/tags`](https://fred.stlouisfed.org/docs/api/fred/release_tags.html) - Get tags for a release
+    - `related_tags/2` - [`/fred/release/related_tags`](https://fred.stlouisfed.org/docs/api/fred/release_related_tags.html) - Get related tags for a release
+    - `tables/2` - [`/fred/release/tables`](https://fred.stlouisfed.org/docs/api/fred/release_tables.html) - Get release tables
   """
 
   alias Fred.Client
+  alias Fred.Utils
+
+  @release_list_schema Utils.generate_schema([
+                         :realtime_range,
+                         :filter_variable_value,
+                         {:pagination, 1_000},
+                         {:order_by,
+                          [
+                            :release_id,
+                            :name,
+                            :press_release,
+                            :realtime_start,
+                            :realtime_end
+                          ]}
+                       ])
+
+  @release_dates_schema Utils.generate_schema([
+                          :realtime_range,
+                          :filter_variable_value,
+                          :include_release_dates_with_no_data,
+                          {:pagination, 1_000},
+                          {:order_by,
+                           [
+                             :release_date,
+                             :release_id,
+                             :release_name
+                           ]}
+                        ])
+
+  @get_release_schema Utils.generate_schema([
+                        :realtime_range
+                      ])
 
   @doc """
   Get all releases of economic data.
 
-  ## Parameters
+  ## Options
 
-    - `opts` — Optional parameters:
-      - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` — End of the real-time period (YYYY-MM-DD)
-      - `:limit` — Max results (1–1000, default: 1000)
-      - `:offset` — Result offset (default: 0)
-      - `:order_by` — One of: `"release_id"`, `"name"`, `"press_release"`,
-        `"realtime_start"`, `"realtime_end"`
-      - `:sort_order` — `"asc"` or `"desc"`
+    #{NimbleOptions.docs(@release_list_schema)}
 
-  ## Example
+  ## Examples
 
-      Fred.Releases.list(limit: 20, order_by: "name")
+      iex> {:ok, releases} = Fred.Releases.list(limit: 20, order_by: :name)
+      iex> %{"releases" => [_ | _]} = releases
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Releases.list(limit: 20, realtime_start: "Bad Input")
   """
   @spec list(keyword()) :: Client.response()
   def list(opts \\ []) do
-    Client.get_json("/releases", opts)
+    with :ok <- Utils.validate_opts(opts, @release_list_schema) do
+      Client.get_json("/releases", opts)
+    end
   end
 
   @doc """
@@ -61,49 +81,50 @@ defmodule Fred.Releases do
   Note that release dates are published by data sources and do not necessarily
   represent when data was available via the FRED API.
 
-  ## Parameters
+  ## Options
 
-    - `opts` — Optional parameters:
-      - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` — End of the real-time period (YYYY-MM-DD)
-      - `:limit` — Max results (1–1000, default: 1000)
-      - `:offset` — Result offset (default: 0)
-      - `:order_by` — One of: `"release_date"`, `"release_id"`, `"release_name"`
-      - `:sort_order` — `"asc"` or `"desc"`
-      - `:include_release_dates_with_no_data` — `"true"` to include future
-        release dates with no data yet (default: `"false"`)
+    #{NimbleOptions.docs(@release_dates_schema)}
 
-  ## Example
+  ## Examples
 
-      Fred.Releases.dates(
-        limit: 10,
-        order_by: "release_date",
-        sort_order: "desc"
-      )
+      iex> {:ok, release_dates} = Fred.Releases.dates(
+      ...>   limit: 10,
+      ...>   order_by: :release_date,
+      ...>   sort_order: :desc
+      ...> )
+      iex> %{"release_dates" => [_ | _]} = release_dates
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Releases.dates(realtime_start: "Bad Input")
   """
   @spec dates(keyword()) :: Client.response()
   def dates(opts \\ []) do
-    Client.get_json("/releases/dates", opts)
+    with :ok <- Utils.validate_opts(opts, @release_dates_schema) do
+      Client.get_json("/releases/dates", opts)
+    end
   end
 
   @doc """
   Get a release of economic data.
 
-  ## Parameters
+  ## Options
 
-    - `release_id` — The ID of the release
-    - `opts` — Optional parameters:
-      - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` — End of the real-time period (YYYY-MM-DD)
+    #{NimbleOptions.docs(@get_release_schema)}
 
   ## Example
 
-      Fred.Releases.get(53)  # GDP release
+      iex> {:ok, releases} = Fred.Releases.get(53)
+      iex> %{"releases" => [_ | _]} = releases
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Releases.get(53, realtime_start: "Bad Input")
   """
-  @spec get(integer(), keyword()) :: Client.response()
+  @spec get(release_id :: integer(), opts :: keyword()) :: Client.response()
   def get(release_id, opts \\ []) do
-    params = Keyword.put(opts, :release_id, release_id)
-    Client.get_json("/release", params)
+    with :ok <- Utils.validate_opts(opts, @get_release_schema) do
+      params = Keyword.put(opts, :release_id, release_id)
+      Client.get_json("/release", params)
+    end
   end
 
   @doc """
@@ -111,20 +132,20 @@ defmodule Fred.Releases do
 
   ## Parameters
 
-    - `release_id` — The ID of the release
-    - `opts` — Optional parameters:
-      - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` — End of the real-time period (YYYY-MM-DD)
-      - `:limit` — Max results (1–10_000, default: 10_000)
-      - `:offset` — Result offset (default: 0)
-      - `:sort_order` — `"asc"` or `"desc"`
-      - `:include_release_dates_with_no_data` — `"true"` or `"false"` (default)
+    - `release_id` - The ID of the release
+    - `opts` - Optional parameters:
+      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
+      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
+      - `:limit` - Max results (1–10_000, default: 10_000)
+      - `:offset` - Result offset (default: 0)
+      - `:sort_order` - `"asc"` or `"desc"`
+      - `:include_release_dates_with_no_data` - `"true"` or `"false"` (default)
 
   ## Example
 
       Fred.Releases.release_dates(53, sort_order: "desc", limit: 5)
   """
-  @spec release_dates(integer(), keyword()) :: Client.response()
+  @spec release_dates(release_id :: integer(), opts :: keyword()) :: Client.response()
   def release_dates(release_id, opts \\ []) do
     params = Keyword.put(opts, :release_id, release_id)
     Client.get_json("/release/dates", params)
@@ -135,27 +156,27 @@ defmodule Fred.Releases do
 
   ## Parameters
 
-    - `release_id` — The ID of the release
-    - `opts` — Optional parameters:
-      - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` — End of the real-time period (YYYY-MM-DD)
-      - `:limit` — Max results (1–1000, default: 1000)
-      - `:offset` — Result offset (default: 0)
-      - `:order_by` — One of: `"series_id"`, `"title"`, `"units"`, `"frequency"`,
+    - `release_id` - The ID of the release
+    - `opts` - Optional parameters:
+      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
+      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
+      - `:limit` - Max results (1–1000, default: 1000)
+      - `:offset` - Result offset (default: 0)
+      - `:order_by` - One of: `"series_id"`, `"title"`, `"units"`, `"frequency"`,
         `"seasonal_adjustment"`, `"realtime_start"`, `"realtime_end"`,
         `"last_updated"`, `"observation_start"`, `"observation_end"`, `"popularity"`,
         `"group_popularity"`
-      - `:sort_order` — `"asc"` or `"desc"`
-      - `:filter_variable` — One of: `"frequency"`, `"units"`, `"seasonal_adjustment"`
-      - `:filter_value` — Value to filter by
-      - `:tag_names` — Semicolon-delimited tag names to match
-      - `:exclude_tag_names` — Semicolon-delimited tag names to exclude
+      - `:sort_order` - `"asc"` or `"desc"`
+      - `:filter_variable` - One of: `"frequency"`, `"units"`, `"seasonal_adjustment"`
+      - `:filter_value` - Value to filter by
+      - `:tag_names` - Semicolon-delimited tag names to match
+      - `:exclude_tag_names` - Semicolon-delimited tag names to exclude
 
   ## Example
 
       Fred.Releases.series(50, order_by: "popularity", sort_order: "desc")
   """
-  @spec series(integer(), keyword()) :: Client.response()
+  @spec series(release_id :: integer(), opts :: keyword()) :: Client.response()
   def series(release_id, opts \\ []) do
     params = Keyword.put(opts, :release_id, release_id)
     Client.get_json("/release/series", params)
@@ -166,16 +187,16 @@ defmodule Fred.Releases do
 
   ## Parameters
 
-    - `release_id` — The ID of the release
-    - `opts` — Optional parameters:
-      - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` — End of the real-time period (YYYY-MM-DD)
+    - `release_id` - The ID of the release
+    - `opts` - Optional parameters:
+      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
+      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
 
   ## Example
 
       Fred.Releases.sources(50)
   """
-  @spec sources(integer(), keyword()) :: Client.response()
+  @spec sources(release_id :: integer(), opts :: keyword()) :: Client.response()
   def sources(release_id, opts \\ []) do
     params = Keyword.put(opts, :release_id, release_id)
     Client.get_json("/release/sources", params)
@@ -186,24 +207,24 @@ defmodule Fred.Releases do
 
   ## Parameters
 
-    - `release_id` — The ID of the release
-    - `opts` — Optional parameters:
-      - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` — End of the real-time period (YYYY-MM-DD)
-      - `:tag_names` — Semicolon-delimited tag names to filter by
-      - `:tag_group_id` — Tag group filter
-      - `:search_text` — Text to search tag names
-      - `:limit` — Max results (1–1000, default: 1000)
-      - `:offset` — Result offset (default: 0)
-      - `:order_by` — One of: `"series_count"`, `"popularity"`, `"created"`,
+    - `release_id` - The ID of the release
+    - `opts` - Optional parameters:
+      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
+      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
+      - `:tag_names` - Semicolon-delimited tag names to filter by
+      - `:tag_group_id` - Tag group filter
+      - `:search_text` - Text to search tag names
+      - `:limit` - Max results (1–1000, default: 1000)
+      - `:offset` - Result offset (default: 0)
+      - `:order_by` - One of: `"series_count"`, `"popularity"`, `"created"`,
         `"name"`, `"group_id"`
-      - `:sort_order` — `"asc"` or `"desc"`
+      - `:sort_order` - `"asc"` or `"desc"`
 
   ## Example
 
       Fred.Releases.tags(50, tag_group_id: "gen")
   """
-  @spec tags(integer(), keyword()) :: Client.response()
+  @spec tags(release_id :: integer(), opts :: keyword()) :: Client.response()
   def tags(release_id, opts \\ []) do
     params = Keyword.put(opts, :release_id, release_id)
     Client.get_json("/release/tags", params)
@@ -214,24 +235,24 @@ defmodule Fred.Releases do
 
   ## Parameters
 
-    - `release_id` — The ID of the release
-    - `opts` — Required and optional parameters:
-      - `:tag_names` — **Required.** Semicolon-delimited tag names
-      - `:realtime_start` / `:realtime_end` — Real-time period bounds
-      - `:exclude_tag_names` — Semicolon-delimited tag names to exclude
-      - `:tag_group_id` — Tag group filter
-      - `:search_text` — Text to search within tags
-      - `:limit` — Max results (1–1000, default: 1000)
-      - `:offset` — Result offset (default: 0)
-      - `:order_by` — One of: `"series_count"`, `"popularity"`, `"created"`,
+    - `release_id` - The ID of the release
+    - `opts` - Required and optional parameters:
+      - `:tag_names` - **Required.** Semicolon-delimited tag names
+      - `:realtime_start` / `:realtime_end` - Real-time period bounds
+      - `:exclude_tag_names` - Semicolon-delimited tag names to exclude
+      - `:tag_group_id` - Tag group filter
+      - `:search_text` - Text to search within tags
+      - `:limit` - Max results (1–1000, default: 1000)
+      - `:offset` - Result offset (default: 0)
+      - `:order_by` - One of: `"series_count"`, `"popularity"`, `"created"`,
         `"name"`, `"group_id"`
-      - `:sort_order` — `"asc"` or `"desc"`
+      - `:sort_order` - `"asc"` or `"desc"`
 
   ## Example
 
       Fred.Releases.related_tags(50, tag_names: "sa;quarterly")
   """
-  @spec related_tags(integer(), keyword()) :: Client.response()
+  @spec related_tags(release_id :: integer(), opts :: keyword()) :: Client.response()
   def related_tags(release_id, opts \\ []) do
     params = Keyword.put(opts, :release_id, release_id)
     Client.get_json("/release/related_tags", params)
@@ -242,17 +263,17 @@ defmodule Fred.Releases do
 
   ## Parameters
 
-    - `release_id` — The ID of the release
-    - `opts` — Optional parameters:
-      - `:element_id` — The release table element ID to retrieve
-      - `:include_observation_values` — `"true"` or `"false"` (default)
-      - `:observation_date` — The observation date (YYYY-MM-DD, default: latest)
+    - `release_id` - The ID of the release
+    - `opts` - Optional parameters:
+      - `:element_id` - The release table element ID to retrieve
+      - `:include_observation_values` - `"true"` or `"false"` (default)
+      - `:observation_date` - The observation date (YYYY-MM-DD, default: latest)
 
   ## Example
 
       Fred.Releases.tables(53)
   """
-  @spec tables(integer(), keyword()) :: Client.response()
+  @spec tables(release_id :: integer(), opts :: keyword()) :: Client.response()
   def tables(release_id, opts \\ []) do
     params = Keyword.put(opts, :release_id, release_id)
     Client.get_json("/release/tables", params)

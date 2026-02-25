@@ -88,6 +88,15 @@ defmodule Fred.Utils do
     ]
   end
 
+  defp generate_field_spec(:include_release_dates_with_no_data) do
+    [
+      tag_names: [
+        doc: "Include future release dates with no data yet",
+        type: :boolean
+      ]
+    ]
+  end
+
   defp generate_field_spec(:tag_names) do
     [
       tag_names: [
