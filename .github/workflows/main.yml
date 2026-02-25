@@ -72,4 +72,5 @@ jobs:
       - name: ExUnit tests
         env:
           MIX_ENV: test
-        run: mix coveralls.github
+        # run: mix coveralls.github
+        run: mix test --cover

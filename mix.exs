@@ -15,14 +15,19 @@ defmodule Fred.MixProject do
       deps: deps(),
       docs: docs(),
       aliases: aliases(),
-      test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.post": :test,
-        "coveralls.html": :test,
-        "coveralls.cobertura": :test
+      test_coverage: [
+        summary: [
+          threshold: 65
+        ]
       ]
+      # test_coverage: [tool: ExCoveralls],
+      # preferred_cli_env: [
+      #   coveralls: :test,
+      #   "coveralls.detail": :test,
+      #   "coveralls.post": :test,
+      #   "coveralls.html": :test,
+      #   "coveralls.cobertura": :test
+      # ]
     ]
   end
 
