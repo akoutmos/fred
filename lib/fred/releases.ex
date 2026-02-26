@@ -295,7 +295,7 @@ defmodule Fred.Releases do
 
   ## Examples
 
-      iex> {:ok, release_related_tags} = Fred.Releases.related_tags(50, tag_names: "sa;quarterly")
+      iex> {:ok, release_related_tags} = Fred.Releases.related_tags(50, tag_names: ["sa", "quarterly"])
       iex> %{"tags" => _} = release_related_tags
 
       iex> {:error, %Fred.Error{type: :option_error}} =

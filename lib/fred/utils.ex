@@ -97,7 +97,7 @@ defmodule Fred.Utils do
 
   defp generate_field_spec(:search_text) do
     [
-      tag_names: [
+      search_text: [
         doc: "Text to search tag names.",
         type: :string
       ]
@@ -126,8 +126,8 @@ defmodule Fred.Utils do
   defp generate_field_spec(:tag_names) do
     [
       tag_names: [
-        doc: "Semicolon-delimited tag names to match.",
-        type: :string
+        doc: "List of tag names to match.",
+        type: {:list, :string}
       ]
     ]
   end
@@ -135,8 +135,8 @@ defmodule Fred.Utils do
   defp generate_field_spec(:exclude_tag_names) do
     [
       exclude_tag_names: [
-        doc: "Semicolon-delimited tag names to exclude.",
-        type: :string
+        doc: "List of tag names to exclude.",
+        type: {:list, :string}
       ]
     ]
   end

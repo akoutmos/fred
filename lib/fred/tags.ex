@@ -3,76 +3,96 @@ defmodule Fred.Tags do
   Functions for the FRED Tags endpoints.
 
   FRED tags are attributes assigned to series. Tags provide an alternative way
-  to find and filter series beyond categories. Examples of tags include
-  geographic identifiers (`"usa"`, `"state"`), frequencies (`"monthly"`),
-  and sources (`"bls"`, `"bea"`).
-
-  ## Tag Groups
-
-    - `"freq"` — Frequency
-    - `"gen"` — General or concept
-    - `"geo"` — Geography
-    - `"geot"` — Geography type
-    - `"rls"` — Release
-    - `"seas"` — Seasonal adjustment
-    - `"src"` — Source
-    - `"cc"` — Citation & copyright
+  to find and filter series beyond categories.
 
   ## Endpoints
 
-    - `list/1` — `fred/tags` — Get all tags
-    - `related/1` — `fred/related_tags` — Get related tags
-    - `series/1` — `fred/tags/series` — Get series matching tags
-
-  ## Examples
-
-      # Get all tags
-      Fred.Tags.list(limit: 20)
-
-      # Search for tags by name
-      Fred.Tags.list(search_text: "inflation")
-
-      # Get related tags
-      Fred.Tags.related(tag_names: "monetary aggregates;m1")
-
-      # Get series that match specific tags
-      Fred.Tags.series(tag_names: "slovenia;food;oecd")
+    - [`list/1`] - [`fred/tags`](https://fred.stlouisfed.org/docs/api/fred/tags.html) - Get all tags
+    - [`related/2`] - [`fred/related_tags`](https://fred.stlouisfed.org/docs/api/fred/related_tags.html) - Get related tags
+    - [`series/2`] - [`fred/tags/series`](https://fred.stlouisfed.org/docs/api/fred/tags_series.html) - Get series matching tags
   """
 
   alias Fred.Client
+  alias Fred.Utils
 
+  @tags_list_schema Utils.generate_schema([
+                      :realtime_range,
+                      :tag_names,
+                      :tag_group_id,
+                      :search_text,
+                      {:pagination, 1_000},
+                      {:order_by,
+                       [
+                         :series_count,
+                         :popularity,
+                         :created,
+                         :name,
+                         :group_id
+                       ]}
+                    ])
+
+  @tags_related_schema Utils.generate_schema([
+                         :realtime_range,
+                         :search_text,
+                         :exclude_tag_names,
+                         :tag_group_id,
+                         {:pagination, 1_000},
+                         {:order_by,
+                          [
+                            :series_count,
+                            :popularity,
+                            :created,
+                            :name,
+                            :group_id
+                          ]}
+                       ])
+
+  @tags_series_schema Utils.generate_schema([
+                        :realtime_range,
+                        :exclude_tag_names,
+                        {:pagination, 1_000},
+                        {:order_by,
+                         [
+                           :series_id,
+                           :title,
+                           :units,
+                           :frequency,
+                           :seasonal_adjustment,
+                           :realtime_start,
+                           :realtime_end,
+                           :last_updated,
+                           :observation_start,
+                           :observation_end,
+                           :popularity,
+                           :group_popularity
+                         ]}
+                      ])
   @doc """
   Get FRED tags, optionally filtered by tag name, group, or search text.
 
-  ## Parameters
+  ## Options
 
-    - `opts` — Optional parameters:
-      - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` — End of the real-time period (YYYY-MM-DD)
-      - `:tag_names` — Semicolon-delimited tag names to filter by
-      - `:tag_group_id` — Tag group filter. One of: `"freq"`, `"gen"`, `"geo"`,
-        `"geot"`, `"rls"`, `"seas"`, `"src"`, `"cc"`
-      - `:search_text` — Text to match against tag names
-      - `:limit` — Max results (1–1000, default: 1000)
-      - `:offset` — Result offset (default: 0)
-      - `:order_by` — One of: `"series_count"`, `"popularity"`, `"created"`,
-        `"name"`, `"group_id"`
-      - `:sort_order` — `"asc"` or `"desc"`
+    #{NimbleOptions.docs(@tags_list_schema)}
 
   ## Examples
 
-      # Get the most popular tags
-      Fred.Tags.list(order_by: "popularity", sort_order: "desc", limit: 10)
+      iex> {:ok, tags} = Fred.Tags.list(order_by: :popularity, sort_order: :desc, limit: 10)
+      iex> %{"tags" => [_ | _]} = tags
 
-      # Get geographic tags
-      Fred.Tags.list(tag_group_id: "geo", limit: 20)
+      iex> {:ok, tags} = Fred.Tags.list(order_by: :name, limit: 10)
+      iex> %{"tags" => [_ | _]} = tags
 
-      # Search for tags
-      Fred.Tags.list(search_text: "inflation")
+      iex> {:ok, tags} = Fred.Tags.list(search_text: "inflation")
+      iex> %{"tags" => [_ | _]} = tags
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Tags.list(limit: 20, realtime_start: "Bad Input")
   """
-  @spec list(keyword()) :: Client.response()
+  @spec list(opts :: keyword()) :: Client.response()
   def list(opts \\ []) do
-    Client.get_json("/tags", opts)
+    with :ok <- Utils.validate_opts(opts, @tags_list_schema) do
+      Client.get_json("/tags", opts)
+    end
   end
 
   @doc """
@@ -81,54 +101,46 @@ defmodule Fred.Tags do
   Related tags are tags assigned to series that match all tags in the `:tag_names`
   parameter, excluding the tags themselves.
 
-  ## Parameters
+  ## Options
 
-    - `opts` — Required and optional parameters:
-      - `:tag_names` — **Required.** Semicolon-delimited tag names
-      - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` — End of the real-time period (YYYY-MM-DD)
-      - `:exclude_tag_names` — Semicolon-delimited tag names to exclude
-      - `:tag_group_id` — Tag group filter
-      - `:search_text` — Text to match against tag names
-      - `:limit` — Max results (1–1000, default: 1000)
-      - `:offset` — Result offset (default: 0)
-      - `:order_by` — One of: `"series_count"`, `"popularity"`, `"created"`,
-        `"name"`, `"group_id"`
-      - `:sort_order` — `"asc"` or `"desc"`
+    #{NimbleOptions.docs(@tags_related_schema)}
 
-  ## Example
+  ## Examples
 
-      Fred.Tags.related(tag_names: "monetary aggregates;m1")
+      iex> {:ok, tags} = Fred.Tags.related(["monetary aggregates", "m1"])
+      iex> %{"tags" => [_ | _]} = tags
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Tags.related(["monetary aggregates", "m1"], limit: 20, realtime_start: "Bad Input")
   """
-  @spec related(keyword()) :: Client.response()
-  def related(opts \\ []) do
-    Client.get_json("/related_tags", opts)
+  @spec related(tag_names :: String.t(), opts :: keyword()) :: Client.response()
+  def related(tag_names, opts \\ []) do
+    with :ok <- Utils.validate_opts(opts, @tags_related_schema) do
+      params = Keyword.put(opts, :tag_names, tag_names)
+      Client.get_json("/related_tags", params)
+    end
   end
 
   @doc """
   Get the series matching all tags in the `:tag_names` parameter.
 
-  ## Parameters
+  ## Options
 
-    - `opts` — Required and optional parameters:
-      - `:tag_names` — **Required.** Semicolon-delimited tag names
-      - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` — End of the real-time period (YYYY-MM-DD)
-      - `:exclude_tag_names` — Semicolon-delimited tag names to exclude
-      - `:limit` — Max results (1–1000, default: 1000)
-      - `:offset` — Result offset (default: 0)
-      - `:order_by` — One of: `"series_id"`, `"title"`, `"units"`, `"frequency"`,
-        `"seasonal_adjustment"`, `"realtime_start"`, `"realtime_end"`,
-        `"last_updated"`, `"observation_start"`, `"observation_end"`, `"popularity"`,
-        `"group_popularity"`
-      - `:sort_order` — `"asc"` or `"desc"`
+    #{NimbleOptions.docs(@tags_series_schema)}
 
-  ## Example
+  ## Examples
 
-      Fred.Tags.series(tag_names: "slovenia;food;oecd", limit: 10)
+      iex> {:ok, series} = Fred.Tags.series(["slovenia", "food", "oecd"], limit: 10)
+      iex> %{"seriess" => [_ | _]} = series
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Tags.series(["slovenia", "food", "oecd"], limit: 20, realtime_start: "Bad Input")
   """
-  @spec series(keyword()) :: Client.response()
-  def series(opts \\ []) do
-    Client.get_json("/tags/series", opts)
+  @spec series(tag_names :: nonempty_list(String.t()), opts :: keyword()) :: Client.response()
+  def series(tag_names, opts \\ []) do
+    with :ok <- Utils.validate_opts(opts, @tags_series_schema) do
+      params = Keyword.put(opts, :tag_names, tag_names)
+      Client.get_json("/tags/series", params)
+    end
   end
 end

@@ -107,15 +107,15 @@ defmodule Fred.Client do
     |> Enum.reject(fn {_k, v} ->
       is_nil(v)
     end)
-    |> Enum.map(fn {k, v} ->
-      {k, serialize_value(v)}
+    |> Enum.map(fn {key, value} ->
+      {key, serialize_value(value)}
     end)
     |> Map.new()
   end
 
   defp serialize_value(%Date{} = date), do: Date.to_iso8601(date)
   defp serialize_value(%DateTime{} = dt), do: DateTime.to_iso8601(dt)
-  defp serialize_value(list) when is_list(list), do: Enum.join(list, ",")
+  defp serialize_value(list) when is_list(list), do: Enum.join(list, ";")
   defp serialize_value(value), do: value
 
   defp generate_url(host, endpoint) do

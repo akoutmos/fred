@@ -209,7 +209,7 @@ defmodule Fred.Categories do
 
   ## Examples
 
-      iex> {:ok, tags} = Fred.Categories.related_tags(125, tag_names: "services;quarterly")
+      iex> {:ok, tags} = Fred.Categories.related_tags(125, tag_names: ["services", "quarterly"])
       iex> %{"tags" => [_ | _]} = tags
   """
   @spec related_tags(category :: integer(), opts :: keyword()) :: Client.response()
