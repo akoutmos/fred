@@ -83,6 +83,10 @@ defmodule Fred.Releases do
                             ]}
                          ])
 
+  @release_sources_schema Utils.generate_schema([
+                            :realtime_range
+                          ])
+
   @doc """
   Get all releases of economic data.
 
@@ -141,7 +145,7 @@ defmodule Fred.Releases do
 
     #{NimbleOptions.docs(@get_release_schema)}
 
-  ## Example
+  ## Examples
 
       iex> {:ok, releases} = Fred.Releases.get(53)
       iex> %{"releases" => [_ | _]} = releases
@@ -164,7 +168,7 @@ defmodule Fred.Releases do
 
     #{NimbleOptions.docs(@get_release_dates_schema)}
 
-  ## Example
+  ## Examples
 
       iex> {:ok, release_dates} = Fred.Releases.release_dates(53, sort_order: :desc, limit: 5)
       iex> %{"release_dates" => [_ | _]} = release_dates
@@ -187,7 +191,7 @@ defmodule Fred.Releases do
 
     #{NimbleOptions.docs(@release_series_schema)}
 
-  ## Example
+  ## Examples
 
       iex> {:ok, release_series} = Fred.Releases.series(50, order_by: :popularity, sort_order: :desc)
       iex> %{"seriess" => [_ | _]} = release_series
@@ -206,21 +210,24 @@ defmodule Fred.Releases do
   @doc """
   Get the sources for a release of economic data.
 
-  ## Parameters
+  ## Options
 
-    - `release_id` - The ID of the release
-    - `opts` - Optional parameters:
-      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
+    #{NimbleOptions.docs(@release_sources_schema)}
 
-  ## Example
+  ## Examples
 
-      Fred.Releases.sources(50)
+      iex> {:ok, release_series} = Fred.Releases.sources(50)
+      iex> %{"sources" => [_ | _]} = release_series
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Releases.sources(50, realtime_start: "Bad Input")
   """
   @spec sources(release_id :: integer(), opts :: keyword()) :: Client.response()
   def sources(release_id, opts \\ []) do
-    params = Keyword.put(opts, :release_id, release_id)
-    Client.get_json("/release/sources", params)
+    with :ok <- Utils.validate_opts(opts, @release_sources_schema) do
+      params = Keyword.put(opts, :release_id, release_id)
+      Client.get_json("/release/sources", params)
+    end
   end
 
   @doc """
