@@ -2,39 +2,21 @@ defmodule Fred.Series do
   @moduledoc """
   Functions for the FRED Series endpoints.
 
-  Series are the core data type in FRED — each series is a time series of
+  Series are the core data type in FRED - each series is a time series of
   economic observations (e.g., GDP, unemployment rate, CPI).
 
   ## Endpoints
 
-    - `get/2` — `fred/series` — Get series metadata
-    - `categories/2` — `fred/series/categories` — Get categories for a series
-    - `observations/2` — `fred/series/observations` — Get the actual data values
-    - `release/2` — `fred/series/release` — Get the release a series belongs to
-    - `search/2` — `fred/series/search` — Search for series by text
-    - `search_tags/2` — `fred/series/search/tags` — Get tags for a search
-    - `search_related_tags/2` — `fred/series/search/related_tags`
-    - `tags/2` — `fred/series/tags` — Get tags for a series
-    - `updates/1` — `fred/series/updates` — Get recently updated series
-    - `vintage_dates/2` — `fred/series/vintagedates` — Get revision dates
-
-  ## Examples
-
-      # Get series metadata
-      Fred.Series.get("GDP")
-
-      # Fetch monthly unemployment observations since 2020
-      Fred.Series.observations("UNRATE",
-        observation_start: "2020-01-01",
-        frequency: "m"
-      )
-
-      # Search for series about inflation
-      Fred.Series.search("consumer price index",
-        order_by: "popularity",
-        sort_order: "desc",
-        limit: 5
-      )
+    - `get/2` - `[/fred/series`](https://fred.stlouisfed.org/docs/api/fred/series.html) - Get series metadata
+    - `categories/2` - [`/fred/series/categories`](https://fred.stlouisfed.org/docs/api/fred/series_categories.html) - Get categories for a series
+    - `observations/2` - [`/fred/series/observations`](https://fred.stlouisfed.org/docs/api/fred/series_observations.html) - Get the actual data values
+    - `release/2` - [`/fred/series/release`](https://fred.stlouisfed.org/docs/api/fred/series_release.html) - Get the release a series belongs to
+    - `search/2` - [`/fred/series/search`](https://fred.stlouisfed.org/docs/api/fred/series_search.html) - Search for series by text
+    - `search_tags/2` - [`/fred/series/search/tags`](https://fred.stlouisfed.org/docs/api/fred/series_search_tags.html) - Get tags for a search
+    - `search_related_tags/2` - [`/fred/series/search/related_tags`](https://fred.stlouisfed.org/docs/api/fred/series_search_related_tags.html)
+    - `tags/2` - [`/fred/series/tags`](https://fred.stlouisfed.org/docs/api/fred/series_tags.html) - Get tags for a series
+    - `updates/1` - [`/fred/series/updates`](https://fred.stlouisfed.org/docs/api/fred/series_updates.html) - Get recently updated series
+    - `vintage_dates/2` - [`/fred/series/vintagedates`](https://fred.stlouisfed.org/docs/api/fred/series_vintagedates.html) - Get revision dates
   """
 
   require Explorer.DataFrame
@@ -50,10 +32,10 @@ defmodule Fred.Series do
 
   ## Parameters
 
-    - `series_id` — The FRED series ID (e.g., `"GDP"`, `"UNRATE"`, `"CPIAUCSL"`)
-    - `opts` — Optional parameters:
-      - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` — End of the real-time period (YYYY-MM-DD)
+    - `series_id` - The FRED series ID (e.g., `"GDP"`, `"UNRATE"`, `"CPIAUCSL"`)
+    - `opts` - Optional parameters:
+      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
+      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
 
   ## Example
 
@@ -72,10 +54,10 @@ defmodule Fred.Series do
 
   ## Parameters
 
-    - `series_id` — The FRED series ID
-    - `opts` — Optional parameters:
-      - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` — End of the real-time period (YYYY-MM-DD)
+    - `series_id` - The FRED series ID
+    - `opts` - Optional parameters:
+      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
+      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
 
   ## Example
 
@@ -94,45 +76,45 @@ defmodule Fred.Series do
 
   ## Parameters
 
-    - `series_id` — The FRED series ID
-    - `opts` — Optional parameters:
-      - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` — End of the real-time period (YYYY-MM-DD)
-      - `:limit` — Max results (1–100_000, default: 100_000)
-      - `:offset` — Result offset for pagination (default: 0)
-      - `:sort_order` — `"asc"` or `"desc"` (default: `"asc"`)
-      - `:observation_start` — Start date for observations (YYYY-MM-DD, default: `"1776-07-04"`)
-      - `:observation_end` — End date for observations (YYYY-MM-DD, default: `"9999-12-31"`)
-      - `:units` — Data value transformation. One of:
-        - `"lin"` — Levels (no transformation, default)
-        - `"chg"` — Change
-        - `"ch1"` — Change from Year Ago
-        - `"pch"` — Percent Change
-        - `"pc1"` — Percent Change from Year Ago
-        - `"pca"` — Compounded Annual Rate of Change
-        - `"cch"` — Continuously Compounded Rate of Change
-        - `"cca"` — Continuously Compounded Annual Rate of Change
-        - `"log"` — Natural Log
-      - `:frequency` — Frequency to aggregate to. One of:
-        - `"d"` — Daily
-        - `"w"` — Weekly
-        - `"bw"` — Biweekly
-        - `"m"` — Monthly
-        - `"q"` — Quarterly
-        - `"sa"` — Semiannual
-        - `"a"` — Annual
-        - `"wef"`, `"weth"`, `"wew"`, `"wetu"`, `"wem"`, `"wesu"`, `"wesa"` — Weekly with specific ending days
-        - `"bwew"`, `"bwem"` — Biweekly with specific ending days
-      - `:aggregation_method` — Method for frequency aggregation. One of:
-        - `"avg"` — Average (default)
-        - `"sum"` — Sum
-        - `"eop"` — End of Period
-      - `:output_type` — Integer 1–4 controlling real-time output format:
-        - `1` — Observations by Real-Time Period (default)
-        - `2` — Observations by Vintage Date, All Observations
-        - `3` — Observations by Vintage Date, New and Revised Observations Only
-        - `4` — Observations, Initial Release Only
-      - `:vintage_dates` — Comma-separated YYYY-MM-DD dates for historical vintages
+    - `series_id` - The FRED series ID
+    - `opts` - Optional parameters:
+      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
+      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
+      - `:limit` - Max results (1–100_000, default: 100_000)
+      - `:offset` - Result offset for pagination (default: 0)
+      - `:sort_order` - `"asc"` or `"desc"` (default: `"asc"`)
+      - `:observation_start` - Start date for observations (YYYY-MM-DD, default: `"1776-07-04"`)
+      - `:observation_end` - End date for observations (YYYY-MM-DD, default: `"9999-12-31"`)
+      - `:units` - Data value transformation. One of:
+        - `"lin"` - Levels (no transformation, default)
+        - `"chg"` - Change
+        - `"ch1"` - Change from Year Ago
+        - `"pch"` - Percent Change
+        - `"pc1"` - Percent Change from Year Ago
+        - `"pca"` - Compounded Annual Rate of Change
+        - `"cch"` - Continuously Compounded Rate of Change
+        - `"cca"` - Continuously Compounded Annual Rate of Change
+        - `"log"` - Natural Log
+      - `:frequency` - Frequency to aggregate to. One of:
+        - `"d"` - Daily
+        - `"w"` - Weekly
+        - `"bw"` - Biweekly
+        - `"m"` - Monthly
+        - `"q"` - Quarterly
+        - `"sa"` - Semiannual
+        - `"a"` - Annual
+        - `"wef"`, `"weth"`, `"wew"`, `"wetu"`, `"wem"`, `"wesu"`, `"wesa"` - Weekly with specific ending days
+        - `"bwew"`, `"bwem"` - Biweekly with specific ending days
+      - `:aggregation_method` - Method for frequency aggregation. One of:
+        - `"avg"` - Average (default)
+        - `"sum"` - Sum
+        - `"eop"` - End of Period
+      - `:output_type` - Integer 1–4 controlling real-time output format:
+        - `1` - Observations by Real-Time Period (default)
+        - `2` - Observations by Vintage Date, All Observations
+        - `3` - Observations by Vintage Date, New and Revised Observations Only
+        - `4` - Observations, Initial Release Only
+      - `:vintage_dates` - Comma-separated YYYY-MM-DD dates for historical vintages
 
   ## Examples
 
@@ -226,10 +208,10 @@ defmodule Fred.Series do
 
   ## Parameters
 
-    - `series_id` — The FRED series ID
-    - `opts` — Optional parameters:
-      - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` — End of the real-time period (YYYY-MM-DD)
+    - `series_id` - The FRED series ID
+    - `opts` - Optional parameters:
+      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
+      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
 
   ## Example
 
@@ -246,24 +228,24 @@ defmodule Fred.Series do
 
   ## Parameters
 
-    - `search_text` — The search query string
-    - `opts` — Optional parameters:
-      - `:search_type` — One of:
-        - `"full_text"` — Searches title, units, frequency, and tags (default)
-        - `"series_id"` — Substring search on series IDs
-      - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` — End of the real-time period (YYYY-MM-DD)
-      - `:limit` — Max results (1–1000, default: 1000)
-      - `:offset` — Result offset (default: 0)
-      - `:order_by` — One of: `"search_rank"`, `"series_id"`, `"title"`, `"units"`,
+    - `search_text` - The search query string
+    - `opts` - Optional parameters:
+      - `:search_type` - One of:
+        - `"full_text"` - Searches title, units, frequency, and tags (default)
+        - `"series_id"` - Substring search on series IDs
+      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
+      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
+      - `:limit` - Max results (1–1000, default: 1000)
+      - `:offset` - Result offset (default: 0)
+      - `:order_by` - One of: `"search_rank"`, `"series_id"`, `"title"`, `"units"`,
         `"frequency"`, `"seasonal_adjustment"`, `"realtime_start"`, `"realtime_end"`,
         `"last_updated"`, `"observation_start"`, `"observation_end"`, `"popularity"`,
         `"group_popularity"`
-      - `:sort_order` — `"asc"` or `"desc"`
-      - `:filter_variable` — One of: `"frequency"`, `"units"`, `"seasonal_adjustment"`
-      - `:filter_value` — Value to filter by
-      - `:tag_names` — Semicolon-delimited tag names that series must match
-      - `:exclude_tag_names` — Semicolon-delimited tag names to exclude
+      - `:sort_order` - `"asc"` or `"desc"`
+      - `:filter_variable` - One of: `"frequency"`, `"units"`, `"seasonal_adjustment"`
+      - `:filter_value` - Value to filter by
+      - `:tag_names` - Semicolon-delimited tag names that series must match
+      - `:exclude_tag_names` - Semicolon-delimited tag names to exclude
 
   ## Examples
 
@@ -296,19 +278,19 @@ defmodule Fred.Series do
 
   ## Parameters
 
-    - `search_text` — The search query string
-    - `opts` — Optional parameters:
-      - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` — End of the real-time period (YYYY-MM-DD)
-      - `:tag_names` — Semicolon-delimited tag names to filter by
-      - `:tag_group_id` — Tag group filter (`"freq"`, `"gen"`, `"geo"`, `"geot"`,
+    - `search_text` - The search query string
+    - `opts` - Optional parameters:
+      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
+      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
+      - `:tag_names` - Semicolon-delimited tag names to filter by
+      - `:tag_group_id` - Tag group filter (`"freq"`, `"gen"`, `"geo"`, `"geot"`,
         `"rls"`, `"seas"`, `"src"`, `"cc"`)
-      - `:tag_search_text` — Text to search tag names
-      - `:limit` — Max results (1–1000, default: 1000)
-      - `:offset` — Result offset (default: 0)
-      - `:order_by` — One of: `"series_count"`, `"popularity"`, `"created"`,
+      - `:tag_search_text` - Text to search tag names
+      - `:limit` - Max results (1–1000, default: 1000)
+      - `:offset` - Result offset (default: 0)
+      - `:order_by` - One of: `"series_count"`, `"popularity"`, `"created"`,
         `"name"`, `"group_id"`
-      - `:sort_order` — `"asc"` or `"desc"`
+      - `:sort_order` - `"asc"` or `"desc"`
 
   ## Example
 
@@ -328,18 +310,18 @@ defmodule Fred.Series do
 
   ## Parameters
 
-    - `search_text` — The search query string
-    - `opts` — Required and optional parameters:
-      - `:tag_names` — **Required.** Semicolon-delimited tag names
-      - `:realtime_start` / `:realtime_end` — Real-time period bounds
-      - `:exclude_tag_names` — Semicolon-delimited tag names to exclude
-      - `:tag_group_id` — Tag group filter
-      - `:tag_search_text` — Text to search within tags
-      - `:limit` — Max results (1–1000, default: 1000)
-      - `:offset` — Result offset (default: 0)
-      - `:order_by` — One of: `"series_count"`, `"popularity"`, `"created"`,
+    - `search_text` - The search query string
+    - `opts` - Required and optional parameters:
+      - `:tag_names` - **Required.** Semicolon-delimited tag names
+      - `:realtime_start` / `:realtime_end` - Real-time period bounds
+      - `:exclude_tag_names` - Semicolon-delimited tag names to exclude
+      - `:tag_group_id` - Tag group filter
+      - `:tag_search_text` - Text to search within tags
+      - `:limit` - Max results (1–1000, default: 1000)
+      - `:offset` - Result offset (default: 0)
+      - `:order_by` - One of: `"series_count"`, `"popularity"`, `"created"`,
         `"name"`, `"group_id"`
-      - `:sort_order` — `"asc"` or `"desc"`
+      - `:sort_order` - `"asc"` or `"desc"`
 
   ## Example
 
@@ -356,13 +338,13 @@ defmodule Fred.Series do
 
   ## Parameters
 
-    - `series_id` — The FRED series ID
-    - `opts` — Optional parameters:
-      - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` — End of the real-time period (YYYY-MM-DD)
-      - `:order_by` — One of: `"series_count"`, `"popularity"`, `"created"`,
+    - `series_id` - The FRED series ID
+    - `opts` - Optional parameters:
+      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
+      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
+      - `:order_by` - One of: `"series_count"`, `"popularity"`, `"created"`,
         `"name"`, `"group_id"`
-      - `:sort_order` — `"asc"` or `"desc"`
+      - `:sort_order` - `"asc"` or `"desc"`
 
   ## Example
 
@@ -381,15 +363,15 @@ defmodule Fred.Series do
 
   ## Parameters
 
-    - `opts` — Optional parameters:
-      - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` — End of the real-time period (YYYY-MM-DD)
-      - `:limit` — Max results (1–1000, default: 1000)
-      - `:offset` — Result offset (default: 0)
-      - `:filter_value` — Filter by geographic type. One of:
+    - `opts` - Optional parameters:
+      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
+      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
+      - `:limit` - Max results (1–1000, default: 1000)
+      - `:offset` - Result offset (default: 0)
+      - `:filter_value` - Filter by geographic type. One of:
         `"macro"`, `"regional"`, `"all"` (default: `"all"`)
-      - `:start_time` — Start time for filtering updates (YYYY-MM-DD HH:MM:SS)
-      - `:end_time` — End time for filtering updates (YYYY-MM-DD HH:MM:SS)
+      - `:start_time` - Start time for filtering updates (YYYY-MM-DD HH:MM:SS)
+      - `:end_time` - End time for filtering updates (YYYY-MM-DD HH:MM:SS)
 
   ## Example
 
@@ -409,13 +391,13 @@ defmodule Fred.Series do
 
   ## Parameters
 
-    - `series_id` — The FRED series ID
-    - `opts` — Optional parameters:
-      - `:realtime_start` — Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` — End of the real-time period (YYYY-MM-DD)
-      - `:limit` — Max results (1–10_000, default: 10_000)
-      - `:offset` — Result offset (default: 0)
-      - `:sort_order` — `"asc"` or `"desc"` (default: `"asc"`)
+    - `series_id` - The FRED series ID
+    - `opts` - Optional parameters:
+      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
+      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
+      - `:limit` - Max results (1–10_000, default: 10_000)
+      - `:offset` - Result offset (default: 0)
+      - `:sort_order` - `"asc"` or `"desc"` (default: `"asc"`)
 
   ## Example
 
