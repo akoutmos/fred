@@ -19,6 +19,7 @@ defmodule Fred.MixProject do
         plt_file: {:no_warn, "priv/plts/project.plt"}
       ],
       test_coverage: [
+        ignore_modules: [Fred.Utils],
         summary: [
           threshold: 40
         ]
