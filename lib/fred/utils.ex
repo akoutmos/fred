@@ -64,18 +64,25 @@ defmodule Fred.Utils do
     ]
   end
 
-  defp generate_field_spec({:order_by, sortable_fields}) do
+  defp generate_field_spec(:sort_order) do
     [
-      order_by: [
-        doc: "Order the results by the provided field. #{generate_in_doc_list(sortable_fields)}",
-        type: {:in, sortable_fields},
-        type_doc: "`t:atom/0`"
-      ],
       sort_order: [
         doc: "The sort order of the results. #{generate_in_doc_list([:asc, :desc])}",
         type: {:in, [:asc, :desc]},
         type_doc: "`t:atom/0`"
       ]
+    ]
+  end
+
+  defp generate_field_spec({:order_by, sortable_fields}) do
+    [
+      {:order_by,
+       [
+         doc: "Order the results by the provided field. #{generate_in_doc_list(sortable_fields)}",
+         type: {:in, sortable_fields},
+         type_doc: "`t:atom/0`"
+       ]}
+      | generate_field_spec(:sort_order)
     ]
   end
 

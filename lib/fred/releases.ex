@@ -53,6 +53,36 @@ defmodule Fred.Releases do
                         :realtime_range
                       ])
 
+  @get_release_dates_schema Utils.generate_schema([
+                              :realtime_range,
+                              :include_release_dates_with_no_data,
+                              :sort_order,
+                              {:pagination, 10_000}
+                            ])
+
+  @release_series_schema Utils.generate_schema([
+                           :realtime_range,
+                           :filter_variable_value,
+                           :tag_names,
+                           :exclude_tag_names,
+                           {:pagination, 1_000},
+                           {:order_by,
+                            [
+                              :series_id,
+                              :title,
+                              :units,
+                              :frequency,
+                              :seasonal_adjustment,
+                              :realtime_start,
+                              :realtime_end,
+                              :last_updated,
+                              :observation_start,
+                              :observation_end,
+                              :popularity,
+                              :group_popularity
+                            ]}
+                         ])
+
   @doc """
   Get all releases of economic data.
 
@@ -130,56 +160,47 @@ defmodule Fred.Releases do
   @doc """
   Get release dates for a specific release of economic data.
 
-  ## Parameters
+  ## Options
 
-    - `release_id` - The ID of the release
-    - `opts` - Optional parameters:
-      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
-      - `:limit` - Max results (1–10_000, default: 10_000)
-      - `:offset` - Result offset (default: 0)
-      - `:sort_order` - `"asc"` or `"desc"`
-      - `:include_release_dates_with_no_data` - `"true"` or `"false"` (default)
+    #{NimbleOptions.docs(@get_release_dates_schema)}
 
   ## Example
 
-      Fred.Releases.release_dates(53, sort_order: "desc", limit: 5)
+      iex> {:ok, release_dates} = Fred.Releases.release_dates(53, sort_order: :desc, limit: 5)
+      iex> %{"release_dates" => [_ | _]} = release_dates
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Releases.release_dates(53, realtime_start: "Bad Input")
   """
   @spec release_dates(release_id :: integer(), opts :: keyword()) :: Client.response()
   def release_dates(release_id, opts \\ []) do
-    params = Keyword.put(opts, :release_id, release_id)
-    Client.get_json("/release/dates", params)
+    with :ok <- Utils.validate_opts(opts, @get_release_dates_schema) do
+      params = Keyword.put(opts, :release_id, release_id)
+      Client.get_json("/release/dates", params)
+    end
   end
 
   @doc """
   Get the series on a release of economic data.
 
-  ## Parameters
+  ## Options
 
-    - `release_id` - The ID of the release
-    - `opts` - Optional parameters:
-      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
-      - `:limit` - Max results (1–1000, default: 1000)
-      - `:offset` - Result offset (default: 0)
-      - `:order_by` - One of: `"series_id"`, `"title"`, `"units"`, `"frequency"`,
-        `"seasonal_adjustment"`, `"realtime_start"`, `"realtime_end"`,
-        `"last_updated"`, `"observation_start"`, `"observation_end"`, `"popularity"`,
-        `"group_popularity"`
-      - `:sort_order` - `"asc"` or `"desc"`
-      - `:filter_variable` - One of: `"frequency"`, `"units"`, `"seasonal_adjustment"`
-      - `:filter_value` - Value to filter by
-      - `:tag_names` - Semicolon-delimited tag names to match
-      - `:exclude_tag_names` - Semicolon-delimited tag names to exclude
+    #{NimbleOptions.docs(@release_series_schema)}
 
   ## Example
 
-      Fred.Releases.series(50, order_by: "popularity", sort_order: "desc")
+      iex> {:ok, release_series} = Fred.Releases.series(50, order_by: :popularity, sort_order: :desc)
+      iex> %{"seriess" => [_ | _]} = release_series
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Releases.series(50, order_by: :bad_input, sort_order: :up_down_sideways)
   """
   @spec series(release_id :: integer(), opts :: keyword()) :: Client.response()
   def series(release_id, opts \\ []) do
-    params = Keyword.put(opts, :release_id, release_id)
-    Client.get_json("/release/series", params)
+    with :ok <- Utils.validate_opts(opts, @release_series_schema) do
+      params = Keyword.put(opts, :release_id, release_id)
+      Client.get_json("/release/series", params)
+    end
   end
 
   @doc """
