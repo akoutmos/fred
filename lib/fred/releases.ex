@@ -87,6 +87,39 @@ defmodule Fred.Releases do
                             :realtime_range
                           ])
 
+  @release_tags_schema Utils.generate_schema([
+                         :realtime_range,
+                         :search_text,
+                         :tag_group_id,
+                         :tag_names,
+                         {:pagination, 10_000},
+                         {:order_by,
+                          [
+                            :series_count,
+                            :popularity,
+                            :created,
+                            :name,
+                            :group_id
+                          ]}
+                       ])
+
+  @release_related_tags_schema Utils.generate_schema([
+                                 :realtime_range,
+                                 :search_text,
+                                 :tag_group_id,
+                                 :tag_names,
+                                 :exclude_tag_names,
+                                 {:pagination, 10_000},
+                                 {:order_by,
+                                  [
+                                    :series_count,
+                                    :popularity,
+                                    :created,
+                                    :name,
+                                    :group_id
+                                  ]}
+                               ])
+
   @doc """
   Get all releases of economic data.
 
@@ -233,77 +266,75 @@ defmodule Fred.Releases do
   @doc """
   Get the FRED tags for a release.
 
-  ## Parameters
+  ## Options
 
-    - `release_id` - The ID of the release
-    - `opts` - Optional parameters:
-      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
-      - `:tag_names` - Semicolon-delimited tag names to filter by
-      - `:tag_group_id` - Tag group filter
-      - `:search_text` - Text to search tag names
-      - `:limit` - Max results (1–1000, default: 1000)
-      - `:offset` - Result offset (default: 0)
-      - `:order_by` - One of: `"series_count"`, `"popularity"`, `"created"`,
-        `"name"`, `"group_id"`
-      - `:sort_order` - `"asc"` or `"desc"`
+    #{NimbleOptions.docs(@release_tags_schema)}
 
-  ## Example
+  ## Examples
 
-      Fred.Releases.tags(50, tag_group_id: "gen")
+      iex> {:ok, release_tags} = Fred.Releases.tags(50, tag_group_id: :gen)
+      iex> %{"tags" => [_ | _]} = release_tags
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Releases.tags(50, realtime_start: "Bad Input" )
   """
   @spec tags(release_id :: integer(), opts :: keyword()) :: Client.response()
   def tags(release_id, opts \\ []) do
-    params = Keyword.put(opts, :release_id, release_id)
-    Client.get_json("/release/tags", params)
+    with :ok <- Utils.validate_opts(opts, @release_tags_schema) do
+      params = Keyword.put(opts, :release_id, release_id)
+      Client.get_json("/release/tags", params)
+    end
   end
 
   @doc """
   Get the related FRED tags for a release.
 
-  ## Parameters
+  ## Options
 
-    - `release_id` - The ID of the release
-    - `opts` - Required and optional parameters:
-      - `:tag_names` - **Required.** Semicolon-delimited tag names
-      - `:realtime_start` / `:realtime_end` - Real-time period bounds
-      - `:exclude_tag_names` - Semicolon-delimited tag names to exclude
-      - `:tag_group_id` - Tag group filter
-      - `:search_text` - Text to search within tags
-      - `:limit` - Max results (1–1000, default: 1000)
-      - `:offset` - Result offset (default: 0)
-      - `:order_by` - One of: `"series_count"`, `"popularity"`, `"created"`,
-        `"name"`, `"group_id"`
-      - `:sort_order` - `"asc"` or `"desc"`
+    #{NimbleOptions.docs(@release_related_tags_schema)}
 
-  ## Example
+  ## Examples
 
-      Fred.Releases.related_tags(50, tag_names: "sa;quarterly")
+      iex> {:ok, release_related_tags} = Fred.Releases.related_tags(50, tag_names: "sa;quarterly")
+      iex> %{"tags" => _} = release_related_tags
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Releases.related_tags(50, realtime_start: "Bad Input")
   """
   @spec related_tags(release_id :: integer(), opts :: keyword()) :: Client.response()
   def related_tags(release_id, opts \\ []) do
-    params = Keyword.put(opts, :release_id, release_id)
-    Client.get_json("/release/related_tags", params)
+    with :ok <- Utils.validate_opts(opts, @release_related_tags_schema) do
+      params = Keyword.put(opts, :release_id, release_id)
+      Client.get_json("/release/related_tags", params)
+    end
   end
+
+  @release_tables_schema Utils.generate_schema([
+                           :element_id,
+                           :include_observation_values,
+                           {:date, :observation_date, "The observation date."}
+                         ])
 
   @doc """
   Get the release tables for a given release.
 
-  ## Parameters
+  ## Options
 
-    - `release_id` - The ID of the release
-    - `opts` - Optional parameters:
-      - `:element_id` - The release table element ID to retrieve
-      - `:include_observation_values` - `"true"` or `"false"` (default)
-      - `:observation_date` - The observation date (YYYY-MM-DD, default: latest)
+    #{NimbleOptions.docs(@release_tables_schema)}
 
-  ## Example
+  ## Examples
 
-      Fred.Releases.tables(53)
+      iex> {:ok, release_tables} = Fred.Releases.tables(53)
+      iex> %{"release_id" => "53", "elements" => _} = release_tables
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Releases.tables(53, realtime_start: "Bad Input")
   """
   @spec tables(release_id :: integer(), opts :: keyword()) :: Client.response()
   def tables(release_id, opts \\ []) do
-    params = Keyword.put(opts, :release_id, release_id)
-    Client.get_json("/release/tables", params)
+    with :ok <- Utils.validate_opts(opts, @release_tables_schema) do
+      params = Keyword.put(opts, :release_id, release_id)
+      Client.get_json("/release/tables", params)
+    end
   end
 end

@@ -64,6 +64,15 @@ defmodule Fred.Utils do
     ]
   end
 
+  defp generate_field_spec(:element_id) do
+    [
+      element_id: [
+        doc: "The release table element ID to retrieve",
+        type: :pos_integer
+      ]
+    ]
+  end
+
   defp generate_field_spec(:sort_order) do
     [
       sort_order: [
@@ -99,6 +108,16 @@ defmodule Fred.Utils do
     [
       tag_names: [
         doc: "Include future release dates with no data yet",
+        type: :boolean
+      ]
+    ]
+  end
+
+  defp generate_field_spec(:include_observation_values) do
+    [
+      include_observation_values: [
+        doc:
+          "A flag to indicate that observations need to be returned. Observation value and date will only be returned for a series type element.",
         type: :boolean
       ]
     ]
