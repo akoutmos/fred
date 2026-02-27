@@ -1,5 +1,5 @@
 defmodule Fred.SeriesTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   doctest Fred.Series
 end

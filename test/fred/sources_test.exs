@@ -1,5 +1,5 @@
 defmodule Fred.SourcesTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   doctest Fred.Sources
 end

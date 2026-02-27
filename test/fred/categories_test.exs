@@ -1,5 +1,5 @@
 defmodule Fred.CategoriesTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   doctest Fred.Categories
 end

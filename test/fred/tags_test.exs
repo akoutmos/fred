@@ -1,5 +1,5 @@
 defmodule Fred.TagsTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   doctest Fred.Tags
 end
