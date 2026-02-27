@@ -50,6 +50,27 @@ defmodule Fred.Series do
                           {:pagination, 10_000}
                         ])
 
+  @series_updates_schema Utils.generate_schema([
+                           :realtime_range,
+                           :sort_order,
+                           {:pagination, 1_000},
+                           {:atom_enum, :filter_value, [:macro, :regional, :all]},
+                           {:naive_date_time, :start_time, "Start time for filtering updates."},
+                           {:naive_date_time, :end_time, "End time for filtering updates."}
+                         ])
+
+  @series_tags_schema Utils.generate_schema([
+                        :realtime_range,
+                        {:order_by,
+                         [
+                           :series_count,
+                           :popularity,
+                           :created,
+                           :name,
+                           :group_id
+                         ]}
+                      ])
+
   @doc """
   Get an economic data series.
 
@@ -380,34 +401,26 @@ defmodule Fred.Series do
   @doc """
   Get the FRED tags for an economic data series.
 
-  ## Parameters
+  ## Options
 
-    - `series_id` - The FRED series ID
-    - `opts` - Optional parameters:
-      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
-      - `:order_by` - One of: `"series_count"`, `"popularity"`, `"created"`,
-        `"name"`, `"group_id"`
-      - `:sort_order` - `"asc"` or `"desc"`
+    #{NimbleOptions.docs(@series_tags_schema)}
 
-  ## Example
+  ## Examples
 
-      Fred.Series.tags("UNRATE")
+      iex> {:ok, tags} = Fred.Series.tags("UNRATE")
+      iex> %{"tags" => [_ | _]} = tags
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Series.tags("UNRATE", realtime_start: "Bad Input")
   """
   @spec tags(series_id :: String.t(), opts :: keyword()) :: Client.response()
   def tags(series_id, opts \\ []) do
-    params = Keyword.put(opts, :series_id, series_id)
-    Client.get_json("/series/tags", params)
+    with :ok <- Utils.validate_opts(opts, @series_tags_schema) do
+      params = Keyword.put(opts, :series_id, series_id)
+      Client.get_json("/series/tags", params)
+    end
   end
 
-  @series_updates_schema Utils.generate_schema([
-                           :realtime_range,
-                           :sort_order,
-                           {:pagination, 1_000},
-                           {:atom_enum, :filter_value, [:macro, :regional, :all]},
-                           {:naive_date_time, :start_time, "Start time for filtering updates."},
-                           {:naive_date_time, :end_time, "End time for filtering updates."}
-                         ])
   @doc """
   Get economic data series sorted by when observations were updated on the FRED server.
 
