@@ -21,7 +21,7 @@ defmodule Fred.MixProject do
       test_coverage: [
         ignore_modules: [Fred.Utils],
         summary: [
-          threshold: 40
+          threshold: 80
         ]
       ]
       # test_coverage: [tool: ExCoveralls],
