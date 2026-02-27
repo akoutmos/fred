@@ -44,6 +44,12 @@ defmodule Fred.Series do
                          {:date, :observation_end, "End date for observations."}
                        ])
 
+  @vintage_dates_schema Utils.generate_schema([
+                          :realtime_range,
+                          :sort_order,
+                          {:pagination, 10_000}
+                        ])
+
   @doc """
   Get an economic data series.
 
@@ -394,30 +400,36 @@ defmodule Fred.Series do
     Client.get_json("/series/tags", params)
   end
 
+  @series_updates_schema Utils.generate_schema([
+                           :realtime_range,
+                           :sort_order,
+                           {:pagination, 1_000},
+                           {:atom_enum, :filter_value, [:macro, :regional, :all]},
+                           {:naive_date_time, :start_time, "Start time for filtering updates."},
+                           {:naive_date_time, :end_time, "End time for filtering updates."}
+                         ])
   @doc """
   Get economic data series sorted by when observations were updated on the FRED server.
 
   Results are limited to series updated within the last two weeks.
 
-  ## Parameters
+  ## Options
 
-    - `opts` - Optional parameters:
-      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
-      - `:limit` - Max results (1–1000, default: 1000)
-      - `:offset` - Result offset (default: 0)
-      - `:filter_value` - Filter by geographic type. One of:
-        `"macro"`, `"regional"`, `"all"` (default: `"all"`)
-      - `:start_time` - Start time for filtering updates (YYYY-MM-DD HH:MM:SS)
-      - `:end_time` - End time for filtering updates (YYYY-MM-DD HH:MM:SS)
+    #{NimbleOptions.docs(@series_updates_schema)}
 
-  ## Example
+  ## Examples
 
-      Fred.Series.updates(limit: 20, filter_value: "macro")
+      iex> {:ok, series} = Fred.Series.updates(limit: 20, filter_value: :macro)
+      iex> %{"seriess" => [_ | _]} = series
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Series.updates(realtime_start: "Bad Input")
   """
   @spec updates(opts :: keyword()) :: Client.response()
   def updates(opts \\ []) do
-    Client.get_json("/series/updates", opts)
+    with :ok <- Utils.validate_opts(opts, @series_updates_schema) do
+      Client.get_json("/series/updates", opts)
+    end
   end
 
   @doc """
@@ -427,23 +439,23 @@ defmodule Fred.Series do
   Vintage dates are the release dates for a series excluding release dates when
   the data for the series did not change.
 
-  ## Parameters
+  ## Options
 
-    - `series_id` - The FRED series ID
-    - `opts` - Optional parameters:
-      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
-      - `:limit` - Max results (1–10_000, default: 10_000)
-      - `:offset` - Result offset (default: 0)
-      - `:sort_order` - `"asc"` or `"desc"` (default: `"asc"`)
+    #{NimbleOptions.docs(@vintage_dates_schema)}
 
-  ## Example
+  ## Examples
 
-      Fred.Series.vintage_dates("GDP")
+      iex> {:ok, vintage_dates} = Fred.Series.vintage_dates("GDP")
+      iex> %{"vintage_dates" => [_ | _]} = vintage_dates
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Series.vintage_dates("GDP", realtime_start: "Bad Input")
   """
   @spec vintage_dates(series_id :: String.t(), opts :: keyword()) :: Client.response()
   def vintage_dates(series_id, opts \\ []) do
-    params = Keyword.put(opts, :series_id, series_id)
-    Client.get_json("/series/vintagedates", params)
+    with :ok <- Utils.validate_opts(opts, @vintage_dates_schema) do
+      params = Keyword.put(opts, :series_id, series_id)
+      Client.get_json("/series/vintagedates", params)
+    end
   end
 end

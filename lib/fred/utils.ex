@@ -27,6 +27,27 @@ defmodule Fred.Utils do
     |> NimbleOptions.new!()
   end
 
+  defp generate_field_spec({:atom_enum, field, possible_values}) do
+    [
+      {field,
+       [
+         doc: "Tag group filter. #{generate_in_doc_list(possible_values)}",
+         type: {:in, possible_values},
+         type_doc: "`t:atom/0`"
+       ]}
+    ]
+  end
+
+  defp generate_field_spec({:naive_date_time, field, description}) do
+    [
+      {field,
+       [
+         doc: description,
+         type: {:struct, NaiveDateTime}
+       ]}
+    ]
+  end
+
   defp generate_field_spec({:date, field, description}) do
     [
       {field,
