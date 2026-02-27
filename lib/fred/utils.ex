@@ -45,6 +45,16 @@ defmodule Fred.Utils do
     ]
   end
 
+  defp generate_field_spec({:string, field, description}) do
+    [
+      {field,
+       [
+         doc: description,
+         type: :string
+       ]}
+    ]
+  end
+
   defp generate_field_spec({:naive_date_time, field, description}) do
     [
       {field,

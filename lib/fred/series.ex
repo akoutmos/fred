@@ -100,6 +100,22 @@ defmodule Fred.Series do
                     ]}
                  ])
 
+  @search_tags_schema Utils.generate_schema([
+                        :realtime_range,
+                        :tag_names,
+                        :tag_group_id,
+                        {:string, :tag_search_text, "Text to search tag names"},
+                        {:pagination, 1_000},
+                        {:order_by,
+                         [
+                           :series_count,
+                           :popularity,
+                           :created,
+                           :name,
+                           :group_id
+                         ]}
+                      ])
+
   @doc """
   Get an economic data series.
 
@@ -353,30 +369,24 @@ defmodule Fred.Series do
 
   Returns the FRED tags that are assigned to series matching the search text.
 
-  ## Parameters
+  ## Options
 
-    - `search_text` - The search query string
-    - `opts` - Optional parameters:
-      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
-      - `:tag_names` - Semicolon-delimited tag names to filter by
-      - `:tag_group_id` - Tag group filter (`"freq"`, `"gen"`, `"geo"`, `"geot"`,
-        `"rls"`, `"seas"`, `"src"`, `"cc"`)
-      - `:tag_search_text` - Text to search tag names
-      - `:limit` - Max results (1–1000, default: 1000)
-      - `:offset` - Result offset (default: 0)
-      - `:order_by` - One of: `"series_count"`, `"popularity"`, `"created"`,
-        `"name"`, `"group_id"`
-      - `:sort_order` - `"asc"` or `"desc"`
+  #{NimbleOptions.docs(@search_tags_schema)}
 
-  ## Example
+  ## Examples
 
-      Fred.Series.search_tags("monetary service index")
+      iex> {:ok, tags} = Fred.Series.search_tags("monetary service index")
+      iex> %{"tags" => [_ | _]} = tags
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Series.search_tags("monetary service index", realtime_start: "Bad Input")
   """
   @spec search_tags(search_text :: String.t(), opts :: keyword()) :: Client.response()
   def search_tags(search_text, opts \\ []) do
-    params = Keyword.put(opts, :series_search_text, search_text)
-    Client.get_json("/series/search/tags", params)
+    with :ok <- Utils.validate_opts(opts, @search_tags_schema) do
+      params = Keyword.put(opts, :series_search_text, search_text)
+      Client.get_json("/series/search/tags", params)
+    end
   end
 
   @doc """
