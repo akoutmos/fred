@@ -71,6 +71,35 @@ defmodule Fred.Series do
                          ]}
                       ])
 
+  @search_schema Utils.generate_schema([
+                   :realtime_range,
+                   :filter_variable_value,
+                   :tag_names,
+                   :exclude_tag_names,
+                   {:atom_enum, :search_type,
+                    [
+                      full_text: "Searches title, units, frequency, and tags",
+                      series_id: "Substring search on series IDs"
+                    ]},
+                   {:pagination, 1_000},
+                   {:order_by,
+                    [
+                      :search_rank,
+                      :series_id,
+                      :title,
+                      :units,
+                      :frequency,
+                      :seasonal_adjustment,
+                      :realtime_start,
+                      :realtime_end,
+                      :last_updated,
+                      :observation_start,
+                      :observation_end,
+                      :popularity,
+                      :group_popularit
+                    ]}
+                 ])
+
   @doc """
   Get an economic data series.
 
@@ -291,49 +320,32 @@ defmodule Fred.Series do
   @doc """
   Search for economic data series that match keywords.
 
-  ## Parameters
+  ## Options
 
-    - `search_text` - The search query string
-    - `opts` - Optional parameters:
-      - `:search_type` - One of:
-        - `"full_text"` - Searches title, units, frequency, and tags (default)
-        - `"series_id"` - Substring search on series IDs
-      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
-      - `:limit` - Max results (1–1000, default: 1000)
-      - `:offset` - Result offset (default: 0)
-      - `:order_by` - One of: `"search_rank"`, `"series_id"`, `"title"`, `"units"`,
-        `"frequency"`, `"seasonal_adjustment"`, `"realtime_start"`, `"realtime_end"`,
-        `"last_updated"`, `"observation_start"`, `"observation_end"`, `"popularity"`,
-        `"group_popularity"`
-      - `:sort_order` - `"asc"` or `"desc"`
-      - `:filter_variable` - One of: `"frequency"`, `"units"`, `"seasonal_adjustment"`
-      - `:filter_value` - Value to filter by
-      - `:tag_names` - Semicolon-delimited tag names that series must match
-      - `:exclude_tag_names` - Semicolon-delimited tag names to exclude
+    #{NimbleOptions.docs(@search_schema)}
 
   ## Examples
 
-      # Search by text
-      Fred.Series.search("unemployment rate",
-        order_by: "popularity",
-        sort_order: "desc",
-        limit: 10
-      )
+      iex> {:ok, series} = Fred.Series.search("UNRATE", search_type: :series_id)
+      iex> %{"seriess" => [_ | _]} = series
 
-      # Search by series ID
-      Fred.Series.search("UNRATE", search_type: "series_id")
+      iex> {:ok, series} =
+      ...>   Fred.Series.search("unemployment rate",
+      ...>     order_by: :popularity,
+      ...>     sort_order: :desc,
+      ...>     limit: 10
+      ...>   )
+      iex> %{"seriess" => [_ | _]} = series
 
-      # Filter to monthly series about GDP
-      Fred.Series.search("gdp",
-        filter_variable: "frequency",
-        filter_value: "Monthly"
-      )
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Series.search("UNRATE", search_type: "Bad search type")
   """
   @spec search(search_text :: String.t(), opts :: keyword()) :: Client.response()
   def search(search_text, opts \\ []) do
-    params = Keyword.put(opts, :search_text, search_text)
-    Client.get_json("/series/search", params)
+    with :ok <- Utils.validate_opts(opts, @search_schema) do
+      params = Keyword.put(opts, :search_text, search_text)
+      Client.get_json("/series/search", params)
+    end
   end
 
   @doc """

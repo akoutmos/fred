@@ -28,11 +28,18 @@ defmodule Fred.Utils do
   end
 
   defp generate_field_spec({:atom_enum, field, possible_values}) do
+    keys =
+      if Keyword.keyword?(possible_values) do
+        Keyword.keys(possible_values)
+      else
+        possible_values
+      end
+
     [
       {field,
        [
          doc: "Tag group filter. #{generate_in_doc_list(possible_values)}",
-         type: {:in, possible_values},
+         type: {:in, keys},
          type_doc: "`t:atom/0`"
        ]}
     ]
