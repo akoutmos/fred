@@ -23,6 +23,13 @@ defmodule Fred.Series do
 
   alias Explorer.DataFrame
   alias Fred.Client
+  alias Fred.Utils
+
+  @get_schema Utils.generate_schema([:realtime_range])
+
+  @categories_schema Utils.generate_schema([:realtime_range])
+
+  @release_schema Utils.generate_schema([:realtime_range])
 
   @doc """
   Get an economic data series.
@@ -30,43 +37,47 @@ defmodule Fred.Series do
   Returns metadata about a series including its title, frequency, units,
   seasonal adjustment, and more.
 
-  ## Parameters
+  ## Options
 
-    - `series_id` - The FRED series ID (e.g., `"GDP"`, `"UNRATE"`, `"CPIAUCSL"`)
-    - `opts` - Optional parameters:
-      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
+    #{NimbleOptions.docs(@get_schema)}
 
-  ## Example
+  ## Examples
 
-      {:ok, data} = Fred.Series.get("GDP")
-      hd(data["seriess"])["title"]
-      #=> "Gross Domestic Product"
+      iex> {:ok, series} = Fred.Series.get("GDP")
+      iex> %{"seriess" => [_ | _]} = series
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Series.get("GDP", realtime_start: "Bad Input")
   """
   @spec get(String.t(), keyword()) :: Client.response()
   def get(series_id, opts \\ []) do
-    params = Keyword.put(opts, :series_id, series_id)
-    Client.get_json("/series", params)
+    with :ok <- Utils.validate_opts(opts, @get_schema) do
+      params = Keyword.put(opts, :series_id, series_id)
+      Client.get_json("/series", params)
+    end
   end
 
   @doc """
   Get the categories for an economic data series.
 
-  ## Parameters
+  ## Options
 
-    - `series_id` - The FRED series ID
-    - `opts` - Optional parameters:
-      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
+    #{NimbleOptions.docs(@categories_schema)}
 
-  ## Example
+  ## Examples
 
-      Fred.Series.categories("UNRATE")
+      iex> {:ok, categories} = Fred.Series.categories("UNRATE")
+      iex> %{"categories" => [_ | _]} = categories
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Series.categories("UNRATE", realtime_start: "Bad Input")
   """
   @spec categories(String.t(), keyword()) :: Client.response()
   def categories(series_id, opts \\ []) do
-    params = Keyword.put(opts, :series_id, series_id)
-    Client.get_json("/series/categories", params)
+    with :ok <- Utils.validate_opts(opts, @categories_schema) do
+      params = Keyword.put(opts, :series_id, series_id)
+      Client.get_json("/series/categories", params)
+    end
   end
 
   @doc """
@@ -139,6 +150,8 @@ defmodule Fred.Series do
     Client.get_json("/series/observations", params)
   end
 
+  @doc """
+  """
   @spec observations(series_ids :: list() | String.t(), opts :: keyword()) :: {:ok, DataFrame.t()} | {:error, term()}
   def observations_as_data_frame(series_ids, opts \\ [])
 
@@ -206,21 +219,24 @@ defmodule Fred.Series do
   @doc """
   Get the release for an economic data series.
 
-  ## Parameters
+  ## Options
 
-    - `series_id` - The FRED series ID
-    - `opts` - Optional parameters:
-      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
+    #{NimbleOptions.docs(@release_schema)}
 
-  ## Example
+  ## Examples
 
-      Fred.Series.release("GDP")
+      iex> {:ok, release} = Fred.Series.release("GDP")
+      iex> %{"releases" => [_ | _]} = release
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Series.release("GDP", realtime_start: "Bad Input")
   """
   @spec release(String.t(), keyword()) :: Client.response()
   def release(series_id, opts \\ []) do
-    params = Keyword.put(opts, :series_id, series_id)
-    Client.get_json("/series/release", params)
+    with :ok <- Utils.validate_opts(opts, @release_schema) do
+      params = Keyword.put(opts, :series_id, series_id)
+      Client.get_json("/series/release", params)
+    end
   end
 
   @doc """
