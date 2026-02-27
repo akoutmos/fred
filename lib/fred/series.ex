@@ -104,7 +104,7 @@ defmodule Fred.Series do
                         :realtime_range,
                         :tag_names,
                         :tag_group_id,
-                        {:string, :tag_search_text, "Text to search tag names"},
+                        :tag_search_text,
                         {:pagination, 1_000},
                         {:order_by,
                          [
@@ -115,6 +115,22 @@ defmodule Fred.Series do
                            :group_id
                          ]}
                       ])
+
+  @search_related_tags_schema Utils.generate_schema([
+                                :realtime_range,
+                                :exclude_tag_names,
+                                :tag_search_text,
+                                :tag_group_id,
+                                {:pagination, 1_000},
+                                {:order_by,
+                                 [
+                                   :series_count,
+                                   :popularity,
+                                   :created,
+                                   :name,
+                                   :group_id
+                                 ]}
+                              ])
 
   @doc """
   Get an economic data series.
@@ -371,7 +387,7 @@ defmodule Fred.Series do
 
   ## Options
 
-  #{NimbleOptions.docs(@search_tags_schema)}
+    #{NimbleOptions.docs(@search_tags_schema)}
 
   ## Examples
 
@@ -395,29 +411,28 @@ defmodule Fred.Series do
   Returns tags assigned to series that match all tags in `:tag_names`
   and the search text.
 
-  ## Parameters
+  ## Options
 
-    - `search_text` - The search query string
-    - `opts` - Required and optional parameters:
-      - `:tag_names` - **Required.** Semicolon-delimited tag names
-      - `:realtime_start` / `:realtime_end` - Real-time period bounds
-      - `:exclude_tag_names` - Semicolon-delimited tag names to exclude
-      - `:tag_group_id` - Tag group filter
-      - `:tag_search_text` - Text to search within tags
-      - `:limit` - Max results (1–1000, default: 1000)
-      - `:offset` - Result offset (default: 0)
-      - `:order_by` - One of: `"series_count"`, `"popularity"`, `"created"`,
-        `"name"`, `"group_id"`
-      - `:sort_order` - `"asc"` or `"desc"`
+    #{NimbleOptions.docs(@search_related_tags_schema)}
 
-  ## Example
+  ## Examples
 
-      Fred.Series.search_related_tags("mortgage rate", tag_names: "30-year;frb")
+      iex> {:ok, tags} = Fred.Series.search_related_tags("mortgage rate", ["30-year", "frb"])
+      iex> %{"tags" => [_ | _]} = tags
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Series.search_related_tags("monetary service index", ["30-year", "frb"], realtime_start: "Bad Input")
   """
-  @spec search_related_tags(search_text :: String.t(), opts :: keyword()) :: Client.response()
-  def search_related_tags(search_text, opts \\ []) do
-    params = Keyword.put(opts, :series_search_text, search_text)
-    Client.get_json("/series/search/related_tags", params)
+  @spec search_related_tags(search_text :: String.t(), tag_names :: String.t(), opts :: keyword()) :: Client.response()
+  def search_related_tags(search_text, tag_names, opts \\ []) do
+    with :ok <- Utils.validate_opts(opts, @search_related_tags_schema) do
+      params =
+        opts
+        |> Keyword.put(:series_search_text, search_text)
+        |> Keyword.put(:tag_names, tag_names)
+
+      Client.get_json("/series/search/related_tags", params)
+    end
   end
 
   @doc """

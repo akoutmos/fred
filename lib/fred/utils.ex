@@ -45,13 +45,12 @@ defmodule Fred.Utils do
     ]
   end
 
-  defp generate_field_spec({:string, field, description}) do
+  defp generate_field_spec(:tag_search_text) do
     [
-      {field,
-       [
-         doc: description,
-         type: :string
-       ]}
+      tag_search_text: [
+        doc: "Text to search tag names",
+        type: :string
+      ]
     ]
   end
 
@@ -77,11 +76,10 @@ defmodule Fred.Utils do
 
   defp generate_field_spec(:vintage_dates) do
     [
-      {:vintage_dates,
-       [
-         doc: "Dates for historical vintages",
-         type: {:list, {:struct, Date}}
-       ]}
+      vintage_dates: [
+        doc: "Dates for historical vintages",
+        type: {:list, {:struct, Date}}
+      ]
     ]
   end
 
