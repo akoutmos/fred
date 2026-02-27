@@ -141,64 +141,96 @@ defmodule Fred.Series do
   end
 
   @doc """
+  Same as `observations/2` except this returns the observation data
+  inside of an `Explorer.DataFrame`. You can also pass in a list of
+  series ids and all of the series will be packaged into the
+  `Explorer.DataFrame`. Since series can all have different dates,
+  the union of all of the dates across all of the series will populate
+  the date column and series without data for that date will have a nil
+  value.
+
+  ## Options
+
+    #{NimbleOptions.docs(@observations_schema)}
+
+  ## Examples
+
+      iex> %Explorer.DataFrame{} = Fred.Series.observations_as_data_frame("GDP")
+
+      iex> %Explorer.DataFrame{} =
+      ...>   Fred.Series.observations_as_data_frame(["GDP", "UNRATE"],
+      ...>     observation_start: ~D[2020-01-01],
+      ...>     frequency: :q,
+      ...>     units: :pch
+      ...>   )
+
+      iex> %Explorer.DataFrame{} =
+      ...>   Fred.Series.observations_as_data_frame("GDP",
+      ...>     vintage_dates: [~D[2015-01-01], ~D[2015-07-01]]
+      ...>   )
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Series.observations_as_data_frame("GDP", realtime_start: "Bad Input")
   """
   @spec observations(series_ids :: list() | String.t(), opts :: keyword()) :: {:ok, DataFrame.t()} | {:error, term()}
   def observations_as_data_frame(series_ids, opts \\ [])
 
   def observations_as_data_frame(series_ids, opts) when is_list(series_ids) do
-    timeout = Application.get_env(:fred, :timeout, 30_000)
+    with :ok <- Utils.validate_opts(opts, @observations_schema) do
+      timeout = Application.get_env(:fred, :timeout, 30_000)
 
-    data_frame =
-      series_ids
-      |> Task.async_stream(
-        fn series_id ->
-          case observations(series_id, opts) do
-            {:ok, %{"observations" => observations}} when is_list(observations) ->
-              {series_id, observations}
+      data_frame =
+        series_ids
+        |> Task.async_stream(
+          fn series_id ->
+            case observations(series_id, opts) do
+              {:ok, %{"observations" => observations}} when is_list(observations) ->
+                {series_id, observations}
 
-            _error ->
-              nil
-          end
-        end,
-        max_concurrency: 5,
-        timeout: timeout
-      )
-      |> Enum.reduce([], fn
-        {:ok, observations}, acc when not is_nil(observations) ->
-          [observations | acc]
+              _error ->
+                nil
+            end
+          end,
+          max_concurrency: 5,
+          timeout: timeout
+        )
+        |> Enum.reduce([], fn
+          {:ok, observations}, acc when not is_nil(observations) ->
+            [observations | acc]
 
-        _, acc ->
-          acc
-      end)
-      |> Enum.flat_map(fn {series_id, observations} ->
-        observations
-        |> Enum.reject(fn
-          %{"value" => "."} -> true
-          %{"value" => nil} -> true
-          _ -> false
+          _, acc ->
+            acc
         end)
-        |> Enum.reduce([], fn observation, acc ->
-          case Decimal.parse(observation["value"]) do
-            {value, ""} ->
-              date = Date.from_iso8601!(observation["date"])
-              data = %{date: date, series_id: series_id, value: value}
-              [data | acc]
+        |> Enum.flat_map(fn {series_id, observations} ->
+          observations
+          |> Enum.reject(fn
+            %{"value" => "."} -> true
+            %{"value" => nil} -> true
+            _ -> false
+          end)
+          |> Enum.reduce([], fn observation, acc ->
+            case Decimal.parse(observation["value"]) do
+              {value, ""} ->
+                date = Date.from_iso8601!(observation["date"])
+                data = %{date: date, series_id: series_id, value: value}
+                [data | acc]
 
-            :error ->
-              acc
-          end
+              :error ->
+                acc
+            end
+          end)
         end)
-      end)
-      |> DataFrame.new()
+        |> DataFrame.new()
 
-    columns = DataFrame.names(data_frame)
+      columns = DataFrame.names(data_frame)
 
-    if "series_id" in columns and "value" in columns do
-      data_frame
-      |> DataFrame.pivot_wider("series_id", "value")
-      |> DataFrame.sort_by(date)
-    else
-      data_frame
+      if "series_id" in columns and "value" in columns do
+        data_frame
+        |> DataFrame.pivot_wider("series_id", "value")
+        |> DataFrame.sort_by(date)
+      else
+        data_frame
+      end
     end
   end
 
