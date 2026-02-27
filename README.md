@@ -1,8 +1,51 @@
-# Fred
+<!--START-->
+<p align="center">
+  <img align="center" width="40%" src="guides/images/logo.png" alt="Fred Logo">
+  <img align="center" width="40%" src="guides/images/logo_text.svg" alt="Fred Logo">
+</p>
 
-An Elixir client for the [FRED® (Federal Reserve Economic Data) API](https://fred.stlouisfed.org/docs/api/fred/), powered by [Req](https://hexdocs.pm/req).
+<p align="center">
+  An Elixir client for the <a href="https://fred.stlouisfed.org/docs/api/fred/">FRED® (Federal Reserve Economic Data) API</a>,
+  powered by <a href="https://hexdocs.pm/req">Req</a>.
+</p>
 
-FRED provides access to over 800,000 economic time series from 100+ sources including the Bureau of Labor Statistics, the Bureau of Economic Analysis, and the Federal Reserve Board.
+<p align="center">
+  <a href="https://hex.pm/packages/fred">
+    <img alt="Hex.pm" src="https://img.shields.io/hexpm/v/fred?style=for-the-badge">
+  </a>
+
+  <a href="https://github.com/akoutmos/fred/actions">
+    <img alt="GitHub Workflow Status (master)" src="https://img.shields.io/github/actions/workflow/status/akoutmos/fred/main.yml?label=Build%20Status&style=for-the-badge&branch=master">
+  </a>
+
+  <a href="https://coveralls.io/github/akoutmos/fred?branch=master">
+    <img alt="Coveralls master branch" src="https://img.shields.io/coveralls/github/akoutmos/fred/master?style=for-the-badge">
+  </a>
+
+  <a href="https://github.com/sponsors/akoutmos">
+    <img alt="Support Fred" src="https://img.shields.io/badge/Support%20Fred-%E2%9D%A4-lightblue?style=for-the-badge">
+  </a>
+</p>
+
+<br>
+<!--END-->
+
+FRED provides access to over 800,000 economic time series from 100+ sources including the Bureau of Labor Statistics,
+the Bureau of Economic Analysis, and the Federal Reserve Board. This library was written to allow readers of
+[Financial Analytics Using Elixir](https://financialanalytics.dev) to collect, analyze and visualize economic data from
+Fred, but it is a complete Fred API client and can be used outside the context of the book.
+
+To learn how to analyze and visualize the financial markets using Livebook, Explorer, Scholar and Nx, be sure to pick up
+a copy of our book:
+
+<img align="center" width="40%" src="guides/images/book_cover.png" alt="Financial Analytics Using Elixir book cover">
+
+# Contents
+
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Quick Start](#quick-start)
+- [API Coverage](#api-coverage)
 
 ## Installation
 
@@ -28,35 +71,22 @@ config :fred, api_key: "your_api_key_here"
 Or use an environment variable:
 
 ```elixir
-config :fred, api_key: System.get_env("FRED_API_KEY")
+config :fred, api_key: System.fetch_env!("FRED_API_KEY")
 ```
 
 ### Optional Settings
 
 ```elixir
 config :fred,
-  api_key: System.get_env("FRED_API_KEY"),
-  base_url: "https://api.stlouisfed.org/fred",  # default
-  recv_timeout: 30_000                           # default, in ms
+  api_key: System.fetch_env!("FRED_API_KEY"),
+  recv_timeout: 30_000                    # HTTP client timeout
 ```
-
-### Optional: Geo Structs for Shape Data
-
-If you use the GeoFRED Maps endpoints and want native Elixir geometry structs
-instead of raw GeoJSON maps, add the [`geo`](https://hex.pm/packages/geo) library:
-
-```elixir
-def deps do
-  [
-    {:fred, "~> 0.1.0"},
-    {:geo, "~> 3.6 or ~> 4.0"}   # optional — enables Fred.Geo and decode: :geo
-  ]
-end
-```
-
-See the [Maps / Geo Integration](#geo-integration) section below.
 
 ## Quick Start
+
+Once you have the Fred library added to your `mix.exs` file, obtained a Fred API key and added the necessary
+configuration, you can start your project with `FRED_API_KEY=YOUR_KEY_GOES_HERE iex -S mix` and run queries
+like so:
 
 ```elixir
 # Fetch the unemployment rate series metadata
@@ -85,213 +115,19 @@ for s <- results["seriess"] do
 end
 ```
 
-## API Reference
+## API Coverage
 
-### Categories — `Fred.Categories`
+This library allows you to access all the endpoints from the [Fred V1 API](https://fred.stlouisfed.org/docs/api/fred/).
+Each group of Fred API endpoints is handled by the following library modules:
 
-Navigate the FRED category hierarchy (root category ID is `0`).
+- `Fred.Categories` - Get data on Fred data categories
+- `Fred.Releases` - Get data on Fred data releases
+- `Fred.Series` - Get data (time series data) on actual economic observations
+- `Fred.Sources` - Get the sources of the Fred data
+- `Fred.Tags` - Get the tags associated with economic data
+- `Fred.Maps` - Get regional data and shape files from Fred
 
-```elixir
-Fred.Categories.get(0)                           # Root category
-Fred.Categories.children(0)                      # Top-level categories
-Fred.Categories.related(32073)                   # Related categories
-Fred.Categories.series(125, limit: 10)           # Series in a category
-Fred.Categories.tags(125)                        # Tags for a category
-Fred.Categories.related_tags(125, tag_names: "quarterly")
-```
-
-### Series — `Fred.Series`
-
-The core module for accessing economic data.
-
-```elixir
-# Metadata
-Fred.Series.get("GDP")
-Fred.Series.categories("GDP")
-Fred.Series.release("GDP")
-Fred.Series.tags("GDP")
-Fred.Series.vintage_dates("GDP")
-
-# Observations (the actual data!)
-Fred.Series.observations("GDP",
-  observation_start: "2020-01-01",
-  observation_end: "2024-12-31",
-  frequency: "q",                # quarterly
-  units: "pch",                  # percent change
-  aggregation_method: "avg"
-)
-
-# Search
-Fred.Series.search("inflation", order_by: "popularity", limit: 10)
-Fred.Series.search("UNRATE", search_type: "series_id")
-Fred.Series.search_tags("monetary service index")
-Fred.Series.search_related_tags("mortgage rate", tag_names: "30-year;frb")
-
-# Recently updated series
-Fred.Series.updates(limit: 20, filter_value: "macro")
-```
-
-#### Observation Parameters
-
-| Parameter            | Values                                                        | Description             |
-| -------------------- | ------------------------------------------------------------- | ----------------------- |
-| `units`              | `lin`, `chg`, `ch1`, `pch`, `pc1`, `pca`, `cch`, `cca`, `log` | Data transformation     |
-| `frequency`          | `d`, `w`, `bw`, `m`, `q`, `sa`, `a`                           | Aggregation frequency   |
-| `aggregation_method` | `avg`, `sum`, `eop`                                           | How to aggregate        |
-| `output_type`        | `1`, `2`, `3`, `4`                                            | Real-time output format |
-
-### Releases — `Fred.Releases`
-
-Information about data publications.
-
-```elixir
-Fred.Releases.list(limit: 20)                       # All releases
-Fred.Releases.dates(sort_order: "desc")              # Release dates
-Fred.Releases.get(53)                                # Specific release (GDP)
-Fred.Releases.release_dates(53, limit: 5)            # Dates for a release
-Fred.Releases.series(50, order_by: "popularity")     # Series on a release
-Fred.Releases.sources(50)                            # Sources for a release
-Fred.Releases.tags(50)                               # Tags for a release
-Fred.Releases.related_tags(50, tag_names: "sa")      # Related tags
-Fred.Releases.tables(53)                             # Release tables
-```
-
-### Sources — `Fred.Sources`
-
-Data providers (BLS, BEA, Federal Reserve Board, etc.).
-
-```elixir
-Fred.Sources.list()                            # All sources
-Fred.Sources.get(1)                            # Board of Governors
-Fred.Sources.releases(1, order_by: "name")     # Releases from a source
-```
-
-### Tags — `Fred.Tags`
-
-Tags are attributes assigned to series for discovery and filtering.
-
-```elixir
-Fred.Tags.list(order_by: "popularity", limit: 20)  # Popular tags
-Fred.Tags.list(tag_group_id: "geo")                 # Geographic tags
-Fred.Tags.list(search_text: "inflation")            # Search tags
-Fred.Tags.related(tag_names: "monetary aggregates;m1")
-Fred.Tags.series(tag_names: "slovenia;food;oecd")
-```
-
-### Maps (GeoFRED) — `Fred.Maps`
-
-Geographic/regional economic data and shape files.
-
-```elixir
-Fred.Maps.shapes("state")                     # US state boundaries (raw GeoJSON)
-Fred.Maps.series_group("SMU56000000500000001a")
-Fred.Maps.series_data("WIPCPI")
-Fred.Maps.regional_data(
-  series_group: "882",
-  region_type: "state",
-  date: "2023-01-01",
-  frequency: "a"
-)
-```
-
-> **⚠️ Note:** The GeoFRED shapes endpoint returns coordinates as quantized
-> integers, not standard WGS84 lon/lat. These cannot be rendered directly on
-> web maps. For map visualization, use standard GeoJSON boundaries (e.g. from
-> the US Census Bureau) and pair them with FRED economic data via
-> `regional_data/1` or `Fred.Series`.
-
-#### Geo Integration
-
-When the [`geo`](https://hex.pm/packages/geo) library is installed, you can
-decode GeoJSON responses into native `Geo` structs (`%Geo.MultiPolygon{}`,
-`%Geo.Polygon{}`, `%Geo.Point{}`, etc.):
-
-```elixir
-# Option 1: decode inline via the :decode option
-{:ok, features} = Fred.Maps.shapes("state", decode: :geo)
-
-hd(features).geometry
-#=> %Geo.MultiPolygon{coordinates: [...], srid: 4326}
-
-hd(features).properties
-#=> %{"name" => "Alabama", ...}
-
-# Option 2: decode manually with Fred.Geo
-{:ok, geojson} = Fred.Maps.shapes("state")
-{:ok, features} = Fred.Geo.decode(geojson)
-
-# Extract just geometries (no properties)
-{:ok, geometries} = Fred.Geo.decode_geometries(geojson)
-
-# Encode back to GeoJSON maps
-{:ok, geojson_map} = Fred.Geo.encode(hd(geometries))
-
-# Check if geo is available at runtime
-Fred.Geo.available?()  #=> true
-```
-
-The `geo` structs interoperate with the broader Elixir ecosystem:
-
-- [`geo_postgis`](https://hex.pm/packages/geo_postgis) — Store shapes in PostGIS
-- [`topo`](https://hex.pm/packages/topo) — Spatial calculations (contains, intersects, etc.)
-
-If `geo` is not installed, the `Fred.Geo` functions return
-`{:error, %Fred.Error{type: :dependency_missing}}` and the `decode: :geo`
-option does the same. The rest of the library works normally.
-
-## Error Handling
-
-All functions return `{:ok, result}` or `{:error, %Fred.Error{}}`:
-
-```elixir
-case Fred.Series.observations("INVALID_ID") do
-  {:ok, data} ->
-    IO.inspect(data["observations"])
-
-  {:error, %Fred.Error{type: :api_error, message: msg, status: status}} ->
-    IO.puts("API error (#{status}): #{msg}")
-
-  {:error, %Fred.Error{type: :transport_error, message: msg}} ->
-    IO.puts("Network error: #{msg}")
-end
-```
-
-You can also use the bang variant on the client:
-
-```elixir
-# Raises on error
-data = Fred.Client.get!("/series/observations", series_id: "GDP")
-```
-
-## Real-Time Periods & Vintage Dates
-
-FRED supports querying data as it was known at a specific point in time:
-
-```elixir
-# What was GDP data on Jan 1, 2015?
-Fred.Series.observations("GDP",
-  realtime_start: "2015-01-01",
-  realtime_end: "2015-01-01"
-)
-
-# Get data at multiple vintage dates
-Fred.Series.observations("GDP",
-  vintage_dates: "2015-01-01,2016-01-01,2017-01-01"
-)
-
-# See when a series was revised
-Fred.Series.vintage_dates("GDP")
-```
-
-## Date Parameters
-
-Date parameters accept strings in `YYYY-MM-DD` format or Elixir `Date` structs:
-
-```elixir
-# Both work
-Fred.Series.observations("UNRATE", observation_start: "2020-01-01")
-Fred.Series.observations("UNRATE", observation_start: ~D[2020-01-01])
-```
+Be sure to check out each individual module to see the options available for each endpoint.
 
 ## Livebook Notebooks
 

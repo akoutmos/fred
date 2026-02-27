@@ -52,12 +52,12 @@ defmodule Fred do
   This library provides coverage for the whole
   [FRED v1 API](https://fred.stlouisfed.org/docs/api/fred/) including Maps:
 
-  - `Fred.Categories` — Browse and explore the category tree
-  - `Fred.Series` — Fetch series metadata, observations, search, and tags
-  - `Fred.Releases` — Get information about data releases
-  - `Fred.Sources` — Get information about data sources
-  - `Fred.Tags` — Browse and search tags assigned to series
-  - `Fred.Maps` — GeoFRED geographic/regional data and shape files
+  - `Fred.Categories` - Browse and explore the category tree
+  - `Fred.Series` - Fetch series metadata, observations, search, and tags
+  - `Fred.Releases` - Get information about data releases
+  - `Fred.Sources` - Get information about data sources
+  - `Fred.Tags` - Browse and search tags assigned to series
+  - `Fred.Maps` - GeoFRED geographic/regional data and shape files
 
   ## Telemetry
 

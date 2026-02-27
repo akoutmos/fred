@@ -13,15 +13,15 @@ defmodule Fred.Telemetry.Logger do
 
   On every completed request (`:stop` event) it logs at the configured level:
 
-      [fred] GET /series/observations — 200 in 142ms (params: %{series_id: "UNRATE", frequency: "m"})
+      [fred] GET /series/observations - 200 in 142ms (params: %{series_id: "UNRATE", frequency: "m"})
 
   On errors:
 
-      [fred] GET /series/observations — error in 83ms: (400) Bad Request (params: %{series_id: ""})
+      [fred] GET /series/observations - error in 83ms: (400) Bad Request (params: %{series_id: ""})
 
   On exceptions (`:exception` event):
 
-      [fred] GET /series/observations — exception in 5012ms: %Req.TransportError{reason: :timeout}
+      [fred] GET /series/observations - exception in 5012ms: %Req.TransportError{reason: :timeout}
 
   ## Configuration
 
@@ -50,8 +50,8 @@ defmodule Fred.Telemetry.Logger do
 
   ## Options
 
-    - `:level` — The `Logger` level to log at. Default: `:info`
-    - `:handler_id` — A unique string ID for this handler. Default: `"fred-default-logger"`.
+    - `:level` - The `Logger` level to log at. Default: `:info`
+    - `:handler_id` - A unique string ID for this handler. Default: `"fred-default-logger"`.
       Useful if you want to attach multiple loggers with different configs.
 
   Returns `:ok` or `{:error, :already_exists}` if the handler ID is taken.
@@ -79,7 +79,7 @@ defmodule Fred.Telemetry.Logger do
 
   ## Parameters
 
-    - `handler_id` — The handler ID to detach. Default: `"fred-default-logger"`
+    - `handler_id` - The handler ID to detach. Default: `"fred-default-logger"`
   """
   @spec detach(String.t()) :: :ok | {:error, :not_found}
   def detach(handler_id \\ @default_id) do
@@ -97,13 +97,13 @@ defmodule Fred.Telemetry.Logger do
     message =
       case result do
         :ok ->
-          "[fred] GET #{endpoint} — #{status} in #{duration_ms}ms#{format_params(params)}"
+          "[fred] GET #{endpoint} - #{status} in #{duration_ms}ms#{format_params(params)}"
 
         :error ->
           error = metadata[:error]
           error_detail = if error, do: ": #{Exception.message(error)}", else: ""
 
-          "[fred] GET #{endpoint} — error in #{duration_ms}ms#{error_detail}#{format_params(params)}"
+          "[fred] GET #{endpoint} - error in #{duration_ms}ms#{error_detail}#{format_params(params)}"
       end
 
     Logger.log(config.level, message)
@@ -116,7 +116,7 @@ defmodule Fred.Telemetry.Logger do
     reason = metadata[:reason]
 
     message =
-      "[fred] GET #{endpoint} — exception in #{duration_ms}ms: #{inspect(reason)}#{format_params(params)}"
+      "[fred] GET #{endpoint} - exception in #{duration_ms}ms: #{inspect(reason)}#{format_params(params)}"
 
     Logger.log(config.level, message)
   end

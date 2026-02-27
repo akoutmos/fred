@@ -13,13 +13,13 @@ defmodule Fred.Telemetry do
 
   **Measurements:**
 
-    - `:system_time` — System time at the start of the request (in native units)
+    - `:system_time` - System time at the start of the request (in native units)
 
   **Metadata:**
 
-    - `:endpoint` — The FRED API path (e.g. `"/series/observations"`)
-    - `:base_url` — The base URL used for the request
-    - `:params` — The query parameters map (with `:api_key` redacted)
+    - `:endpoint` - The FRED API path (e.g. `"/series/observations"`)
+    - `:base_url` - The base URL used for the request
+    - `:params` - The query parameters map (with `:api_key` redacted)
 
   ### `[:fred, :request, :stop]`
 
@@ -28,17 +28,17 @@ defmodule Fred.Telemetry do
 
   **Measurements:**
 
-    - `:duration` — Total wall-clock duration in native time units.
+    - `:duration` - Total wall-clock duration in native time units.
       Convert with `System.convert_time_unit(duration, :native, :millisecond)`.
 
   **Metadata:**
 
-    - `:endpoint` — The FRED API path
-    - `:base_url` — The base URL used
-    - `:params` — The query parameters map (with `:api_key` redacted)
-    - `:status` — HTTP status code (integer) or `nil` if the request never completed
-    - `:result` — `:ok` or `:error`
-    - `:error` — The `%Fred.Error{}` struct (only present when `:result` is `:error`)
+    - `:endpoint` - The FRED API path
+    - `:base_url` - The base URL used
+    - `:params` - The query parameters map (with `:api_key` redacted)
+    - `:status` - HTTP status code (integer) or `nil` if the request never completed
+    - `:result` - `:ok` or `:error`
+    - `:error` - The `%Fred.Error{}` struct (only present when `:result` is `:error`)
 
   ### `[:fred, :request, :exception]`
 
@@ -46,16 +46,16 @@ defmodule Fred.Telemetry do
 
   **Measurements:**
 
-    - `:duration` — Wall-clock duration until the exception
+    - `:duration` - Wall-clock duration until the exception
 
   **Metadata:**
 
-    - `:endpoint` — The FRED API path
-    - `:base_url` — The base URL used
-    - `:params` — The query parameters map (with `:api_key` redacted)
-    - `:kind` — The exception kind (`:throw`, `:error`, `:exit`)
-    - `:reason` — The exception or thrown value
-    - `:stacktrace` — The stacktrace
+    - `:endpoint` - The FRED API path
+    - `:base_url` - The base URL used
+    - `:params` - The query parameters map (with `:api_key` redacted)
+    - `:kind` - The exception kind (`:throw`, `:error`, `:exit`)
+    - `:reason` - The exception or thrown value
+    - `:stacktrace` - The stacktrace
 
   ## Attaching Handlers
 
@@ -92,9 +92,9 @@ defmodule Fred.Telemetry do
 
   ## Parameters
 
-    - `metadata` — A map that must include at least `:endpoint`. Additional
+    - `metadata` - A map that must include at least `:endpoint`. Additional
       keys like `:base_url` and `:params` are recommended.
-    - `fun` — A zero-arity function that performs the request and returns
+    - `fun` - A zero-arity function that performs the request and returns
       `{:ok, map()}` or `{:error, %Fred.Error{}}`.
 
   The function's return value is augmented with telemetry metadata and

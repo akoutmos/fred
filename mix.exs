@@ -116,7 +116,7 @@ defmodule Fred.MixProject do
 
   defp aliases do
     [
-      docs: ["docs", &copy_files/1]
+      docs: [&massage_readme/1, "docs", &copy_files/1, &revert_readme/1]
     ]
   end
 
@@ -136,5 +136,40 @@ defmodule Fred.MixProject do
     |> Enum.each(fn image_file ->
       File.cp!("./guides/images/#{image_file}", "./doc/guides/images/#{image_file}")
     end)
+  end
+
+  defp revert_readme(_) do
+    File.cp!("./README.md.orig", "./README.md")
+    File.rm!("./README.md.orig")
+  end
+
+  defp massage_readme(_) do
+    hex_docs_friendly_header_content = """
+    <br>
+    <img align="center" width="33%" src="guides/images/logo.png" alt="Fred Logo" style="margin-left:33%">
+    <img align="center" width="70%" src="guides/images/logo_text.png" alt="Fred Logo" style="margin-left:15%">
+    <br>
+    <div align="center"></div>
+    <br>
+    --------------------
+
+    [![Hex.pm](https://img.shields.io/hexpm/v/prom_ex?style=for-the-badge)](http://hex.pm/packages/prom_ex)
+    [![Build Status](https://img.shields.io/github/actions/workflow/status/akoutmos/prom_ex/main.yml?label=Build%20Status&style=for-the-badge&branch=master)](https://github.com/akoutmos/prom_ex/actions)
+    [![Coverage Status](https://img.shields.io/coveralls/github/akoutmos/prom_ex/master?style=for-the-badge)](https://coveralls.io/github/akoutmos/prom_ex?branch=master)
+    [![Support Fred](https://img.shields.io/badge/Support%20Fred-%E2%9D%A4-lightblue?style=for-the-badge)](https://github.com/sponsors/akoutmos)
+    """
+
+    File.cp!("./README.md", "./README.md.orig")
+
+    readme_contents = File.read!("./README.md")
+
+    massaged_readme =
+      Regex.replace(
+        ~r/<!--START-->(.|\n)*<!--END-->/,
+        readme_contents,
+        hex_docs_friendly_header_content
+      )
+
+    File.write!("./README.md", massaged_readme)
   end
 end
