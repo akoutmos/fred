@@ -7,7 +7,7 @@ defmodule Fred.Series do
 
   ## Endpoints
 
-    - `get/2` - `[/fred/series`](https://fred.stlouisfed.org/docs/api/fred/series.html) - Get series metadata
+    - `get/2` - [`/fred/series`](https://fred.stlouisfed.org/docs/api/fred/series.html) - Get series metadata
     - `categories/2` - [`/fred/series/categories`](https://fred.stlouisfed.org/docs/api/fred/series_categories.html) - Get categories for a series
     - `observations/2` - [`/fred/series/observations`](https://fred.stlouisfed.org/docs/api/fred/series_observations.html) - Get the actual data values
     - `release/2` - [`/fred/series/release`](https://fred.stlouisfed.org/docs/api/fred/series_release.html) - Get the release a series belongs to
@@ -31,6 +31,19 @@ defmodule Fred.Series do
 
   @release_schema Utils.generate_schema([:realtime_range])
 
+  @observations_schema Utils.generate_schema([
+                         :realtime_range,
+                         :sort_order,
+                         :units,
+                         :frequency,
+                         :aggregation_method,
+                         :output_type,
+                         :vintage_dates,
+                         {:pagination, 100_000},
+                         {:date, :observation_start, "Start date for observations."},
+                         {:date, :observation_end, "End date for observations."}
+                       ])
+
   @doc """
   Get an economic data series.
 
@@ -49,7 +62,7 @@ defmodule Fred.Series do
       iex> {:error, %Fred.Error{type: :option_error}} =
       ...>   Fred.Series.get("GDP", realtime_start: "Bad Input")
   """
-  @spec get(String.t(), keyword()) :: Client.response()
+  @spec get(series_id :: String.t(), opts :: keyword()) :: Client.response()
   def get(series_id, opts \\ []) do
     with :ok <- Utils.validate_opts(opts, @get_schema) do
       params = Keyword.put(opts, :series_id, series_id)
@@ -72,7 +85,7 @@ defmodule Fred.Series do
       iex> {:error, %Fred.Error{type: :option_error}} =
       ...>   Fred.Series.categories("UNRATE", realtime_start: "Bad Input")
   """
-  @spec categories(String.t(), keyword()) :: Client.response()
+  @spec categories(series_id :: String.t(), opts :: keyword()) :: Client.response()
   def categories(series_id, opts \\ []) do
     with :ok <- Utils.validate_opts(opts, @categories_schema) do
       params = Keyword.put(opts, :series_id, series_id)
@@ -85,69 +98,46 @@ defmodule Fred.Series do
 
   This is the primary function for retrieving actual time series data from FRED.
 
-  ## Parameters
+  ## Options
 
-    - `series_id` - The FRED series ID
-    - `opts` - Optional parameters:
-      - `:realtime_start` - Start of the real-time period (YYYY-MM-DD)
-      - `:realtime_end` - End of the real-time period (YYYY-MM-DD)
-      - `:limit` - Max results (1–100_000, default: 100_000)
-      - `:offset` - Result offset for pagination (default: 0)
-      - `:sort_order` - `"asc"` or `"desc"` (default: `"asc"`)
-      - `:observation_start` - Start date for observations (YYYY-MM-DD, default: `"1776-07-04"`)
-      - `:observation_end` - End date for observations (YYYY-MM-DD, default: `"9999-12-31"`)
-      - `:units` - Data value transformation. One of:
-        - `"lin"` - Levels (no transformation, default)
-        - `"chg"` - Change
-        - `"ch1"` - Change from Year Ago
-        - `"pch"` - Percent Change
-        - `"pc1"` - Percent Change from Year Ago
-        - `"pca"` - Compounded Annual Rate of Change
-        - `"cch"` - Continuously Compounded Rate of Change
-        - `"cca"` - Continuously Compounded Annual Rate of Change
-        - `"log"` - Natural Log
-      - `:frequency` - Frequency to aggregate to. One of:
-        - `"d"` - Daily
-        - `"w"` - Weekly
-        - `"bw"` - Biweekly
-        - `"m"` - Monthly
-        - `"q"` - Quarterly
-        - `"sa"` - Semiannual
-        - `"a"` - Annual
-        - `"wef"`, `"weth"`, `"wew"`, `"wetu"`, `"wem"`, `"wesu"`, `"wesa"` - Weekly with specific ending days
-        - `"bwew"`, `"bwem"` - Biweekly with specific ending days
-      - `:aggregation_method` - Method for frequency aggregation. One of:
-        - `"avg"` - Average (default)
-        - `"sum"` - Sum
-        - `"eop"` - End of Period
-      - `:output_type` - Integer 1–4 controlling real-time output format:
-        - `1` - Observations by Real-Time Period (default)
-        - `2` - Observations by Vintage Date, All Observations
-        - `3` - Observations by Vintage Date, New and Revised Observations Only
-        - `4` - Observations, Initial Release Only
-      - `:vintage_dates` - Comma-separated YYYY-MM-DD dates for historical vintages
+    #{NimbleOptions.docs(@observations_schema)}
 
   ## Examples
 
-      # Basic observations
-      Fred.Series.observations("UNRATE")
+      iex> {:ok, observations} = Fred.Series.observations("UNRATE")
+      iex> %{"observations" => [_ | _]} = observations
 
-      # Quarterly GDP percent change since 2020
-      Fred.Series.observations("GDP",
-        observation_start: "2020-01-01",
-        frequency: "q",
-        units: "pch"
-      )
+      iex> {:ok, observations} =
+      ...>   Fred.Series.observations("GDP",
+      ...>     observation_start: ~D[2020-01-01],
+      ...>     frequency: :q,
+      ...>     units: :pch
+      ...>   )
+      iex> %{"observations" => [_ | _]} = observations
 
-      # Get data as it was known on a specific date
-      Fred.Series.observations("GDP",
-        vintage_dates: "2015-01-01,2015-07-01"
-      )
+      iex> {:ok, observations} =
+      ...>   Fred.Series.observations("GDP",
+      ...>     vintage_dates: [~D[2015-01-01], ~D[2015-07-01]]
+      ...>   )
+      iex> %{"observations" => [_ | _]} = observations
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Series.observations("GDP", realtime_start: "Bad Input")
   """
-  @spec observations(String.t(), keyword()) :: Client.response()
+  @spec observations(series_id :: String.t(), opts :: keyword()) :: Client.response()
   def observations(series_id, opts \\ []) do
-    params = Keyword.put(opts, :series_id, series_id)
-    Client.get_json("/series/observations", params)
+    with :ok <- Utils.validate_opts(opts, @observations_schema) do
+      params =
+        opts
+        |> Keyword.put(:series_id, series_id)
+        |> Keyword.replace_lazy(:vintage_dates, fn dates ->
+          Enum.map_join(dates, ",", fn date ->
+            Date.to_iso8601(date)
+          end)
+        end)
+
+      Client.get_json("/series/observations", params)
+    end
   end
 
   @doc """

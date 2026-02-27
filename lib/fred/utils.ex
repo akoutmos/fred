@@ -37,6 +37,16 @@ defmodule Fred.Utils do
     ]
   end
 
+  defp generate_field_spec(:vintage_dates) do
+    [
+      {:vintage_dates,
+       [
+         doc: "Dates for historical vintages",
+         type: {:list, {:struct, Date}}
+       ]}
+    ]
+  end
+
   defp generate_field_spec(:realtime_range) do
     [
       realtime_start: [
@@ -46,6 +56,23 @@ defmodule Fred.Utils do
       realtime_end: [
         doc: "End of the real-time period.",
         type: {:struct, Date}
+      ]
+    ]
+  end
+
+  defp generate_field_spec(:output_type) do
+    possible_values = [
+      real_time_period: "Observations by real-time period.",
+      all_vintage: "Observations by vintage date, all observations.",
+      new_revised_vintage: "Observations by vintage date, new and revised observations only.",
+      initial_release: "Observations, initial release only."
+    ]
+
+    [
+      output_type: [
+        doc: "Specifies how the real-time output is formated. #{generate_in_doc_list(possible_values)}",
+        type: {:in, Keyword.keys(possible_values)},
+        type_doc: "`t:atom/0`"
       ]
     ]
   end
