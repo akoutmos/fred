@@ -253,7 +253,7 @@ defmodule Fred.Series do
       iex> {:error, %Fred.Error{type: :option_error}} =
       ...>   Fred.Series.release("GDP", realtime_start: "Bad Input")
   """
-  @spec release(String.t(), keyword()) :: Client.response()
+  @spec release(series_id :: String.t(), opts :: keyword()) :: Client.response()
   def release(series_id, opts \\ []) do
     with :ok <- Utils.validate_opts(opts, @release_schema) do
       params = Keyword.put(opts, :series_id, series_id)
@@ -303,7 +303,7 @@ defmodule Fred.Series do
         filter_value: "Monthly"
       )
   """
-  @spec search(String.t(), keyword()) :: Client.response()
+  @spec search(search_text :: String.t(), opts :: keyword()) :: Client.response()
   def search(search_text, opts \\ []) do
     params = Keyword.put(opts, :search_text, search_text)
     Client.get_json("/series/search", params)
@@ -334,7 +334,7 @@ defmodule Fred.Series do
 
       Fred.Series.search_tags("monetary service index")
   """
-  @spec search_tags(String.t(), keyword()) :: Client.response()
+  @spec search_tags(search_text :: String.t(), opts :: keyword()) :: Client.response()
   def search_tags(search_text, opts \\ []) do
     params = Keyword.put(opts, :series_search_text, search_text)
     Client.get_json("/series/search/tags", params)
@@ -365,7 +365,7 @@ defmodule Fred.Series do
 
       Fred.Series.search_related_tags("mortgage rate", tag_names: "30-year;frb")
   """
-  @spec search_related_tags(String.t(), keyword()) :: Client.response()
+  @spec search_related_tags(search_text :: String.t(), opts :: keyword()) :: Client.response()
   def search_related_tags(search_text, opts \\ []) do
     params = Keyword.put(opts, :series_search_text, search_text)
     Client.get_json("/series/search/related_tags", params)
@@ -388,7 +388,7 @@ defmodule Fred.Series do
 
       Fred.Series.tags("UNRATE")
   """
-  @spec tags(String.t(), keyword()) :: Client.response()
+  @spec tags(series_id :: String.t(), opts :: keyword()) :: Client.response()
   def tags(series_id, opts \\ []) do
     params = Keyword.put(opts, :series_id, series_id)
     Client.get_json("/series/tags", params)
@@ -415,7 +415,7 @@ defmodule Fred.Series do
 
       Fred.Series.updates(limit: 20, filter_value: "macro")
   """
-  @spec updates(keyword()) :: Client.response()
+  @spec updates(opts :: keyword()) :: Client.response()
   def updates(opts \\ []) do
     Client.get_json("/series/updates", opts)
   end
@@ -441,7 +441,7 @@ defmodule Fred.Series do
 
       Fred.Series.vintage_dates("GDP")
   """
-  @spec vintage_dates(String.t(), keyword()) :: Client.response()
+  @spec vintage_dates(series_id :: String.t(), opts :: keyword()) :: Client.response()
   def vintage_dates(series_id, opts \\ []) do
     params = Keyword.put(opts, :series_id, series_id)
     Client.get_json("/series/vintagedates", params)
