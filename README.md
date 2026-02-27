@@ -1,7 +1,6 @@
 <!--START-->
 <p align="center">
-  <img align="center" width="40%" src="guides/images/logo.png" alt="Fred Logo">
-  <img align="center" width="40%" src="guides/images/logo_text.svg" alt="Fred Logo">
+  <img align="center" width="50%" src="guides/images/logo.png" alt="Fred Logo">
 </p>
 
 <p align="center">
@@ -30,15 +29,17 @@
 <br>
 <!--END-->
 
-FRED provides access to over 800,000 economic time series from 100+ sources including the Bureau of Labor Statistics,
-the Bureau of Economic Analysis, and the Federal Reserve Board. This library was written to allow readers of
+FRED® (Federal Reserve Economic Data) provides access to over 800,000 economic time series from 100+ sources including the Bureau of Labor
+Statistics, the Bureau of Economic Analysis, and the Federal Reserve Board. This library was written to allow readers of
 [Financial Analytics Using Elixir](https://financialanalytics.dev) to collect, analyze and visualize economic data from
 Fred, but it is a complete Fred API client and can be used outside the context of the book.
 
-To learn how to analyze and visualize the financial markets using Livebook, Explorer, Scholar and Nx, be sure to pick up
+To learn how you can analyze and visualize the financial markets using Livebook, Explorer, Scholar and Nx, be sure to pick up
 a copy of our book:
 
-<img align="center" width="40%" src="guides/images/book_cover.png" alt="Financial Analytics Using Elixir book cover">
+<a href="https://financialanalytics.dev">
+  <img align="center" width="50%" src="guides/images/book_cover.png" alt="Financial Analytics Using Elixir book cover" style="margin-left:25%">
+</a>
 
 # Contents
 

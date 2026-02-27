@@ -146,8 +146,7 @@ defmodule Fred.MixProject do
   defp massage_readme(_) do
     hex_docs_friendly_header_content = """
     <br>
-    <img align="center" width="33%" src="guides/images/logo.png" alt="Fred Logo" style="margin-left:33%">
-    <img align="center" width="70%" src="guides/images/logo_text.png" alt="Fred Logo" style="margin-left:15%">
+    <img align="center" width="50%" src="guides/images/logo.png" alt="Fred Logo" style="margin-left:25%">
     <br>
     <div align="center"></div>
     <br>
