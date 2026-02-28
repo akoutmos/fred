@@ -2,7 +2,7 @@
 
 ```elixir
 Mix.install([
-  {:fred, path: Path.join(__DIR__, "..")},
+  {:fred, "~> 0.1"},
   {:kino_maplibre, "~> 0.1.13"},
   {:kino, "~> 0.14"},
 ])
@@ -79,7 +79,7 @@ Ml.new(center: map_center, zoom: map_zoom)
 )
 ```
 
-## Overlay Map With Fred Unemployment Data
+## Overlay Map With FRED Unemployment Data
 
 FRED names state unemployment series as `"{STATE_CODE}UR"` - for example,
 `"TXUR"` for Texas, `"CAUR"` for California. Let's fetch the latest value
@@ -97,6 +97,8 @@ state_data =
   |> Enum.reduce(%{}, fn code, acc ->
     series_id = "#{code}UR"
 
+    # By passing `limit: 1` and `sort_order: :desc` we fetch the latest unemployment
+    # data for the provided state
     case Fred.Series.observations(series_id, sort_order: :desc, limit: 1) do
       {:ok, %{"observations" => [obs | _]}} ->
         {value, ""} = Float.parse(obs["value"])
@@ -110,8 +112,8 @@ state_data =
 IO.puts("Got data for #{map_size(state_data)} of #{length(state_codes)} states")
 ```
 
-We merge unemployment values into the GeoJSON features by matching state
-names, then use a MapLibre `interpolate` expression for the color gradient.
+We then merge unemployment values into the GeoJSON features by matching against the name
+of the state.
 
 ```elixir
 # State name → abbreviation mapping for joining
@@ -192,19 +194,26 @@ matched =
 IO.puts("Matched #{matched} of #{length(merged_features)} features with unemployment data")
 ```
 
-### Render the Choropleth
+We then take the merged GeoJSON data and pass it to MapLibre so that it can render the map. We
+utilize the min, mid and max values from the dataset in order to configure how MapLibre calculates
+the gradient for each state's value.
 
 ```elixir
 values =
   merged_features
-  |> Enum.map(fn f -> f["properties"]["unemployment"] end)
-  |> Enum.reject(&is_nil/1)
+  |> Enum.reduce([], fn
+    %{"properties" => %{"unemployment" => unemployment}}, acc when not is_nil(unemployment) ->
+      [unemployment | acc]
 
-min_val = Enum.min(values)
-max_val = Enum.max(values)
-mid_val = Float.round((min_val + max_val) / 2, 1)
+    _, acc ->
+      acc
+  end)
+  |> Enum.reverse()
 
-IO.puts("Unemployment range: #{min_val}% - #{max_val}% (mid: #{mid_val}%)")
+{min_value, max_value} = Enum.min_max(values)
+mid_value = Float.round((min_value + max_value) / 2, 1)
+
+IO.puts("Unemployment range: #{min_value}% - #{max_value}%")
 
 Ml.new(center: map_center, zoom: map_zoom)
 |> Ml.add_source("unemployment", type: :geojson, data: merged_geojson)
@@ -217,12 +226,12 @@ Ml.new(center: map_center, zoom: map_zoom)
       "interpolate",
       ["linear"],
       ["get", "unemployment"],
-      min_val,
-      "#2166ac",
-      mid_val,
-      "#f7f7f7",
-      max_val,
-      "#b2182b"
+      min_value,
+      "#16a34a",
+      mid_value,
+      "#ca8a04",
+      max_value,
+      "#dc2626"
     ],
     fill_opacity: [
       "case",
@@ -238,16 +247,15 @@ Ml.new(center: map_center, zoom: map_zoom)
   source: "unemployment",
   paint: [line_color: "#333333", line_width: 0.5]
 )
-|> Kino.MapLibre.add_hover("unemployment-fill")
 ```
 
-Blue states have lower unemployment; red states have higher. Hover to highlight.
+States with lower unemployment are green while states with higher unemployment are red
 
-## Part 6: Per Capita Income - A Second Choropleth
+## Overlay Map With FRED Per Capita Income Data
 
-Let's build another choropleth with a different indicator. FRED has
-**per capita personal income** data per state, with series IDs like
-`"{STATE_CODE}PCPI"`.
+Let's build another color coded map with a different indicator. Similarly to unemployment rate,
+FRED has per capita personal income data per state, with series IDs like `"{STATE_CODE}PCPI"`.
+Let's fetch all those observations and render them on a map of the USA.
 
 ```elixir
 IO.puts("Fetching per capita income for each state...\n")
@@ -259,10 +267,8 @@ income_data =
 
     case Fred.Series.observations(series_id, sort_order: :desc, limit: 1) do
       {:ok, %{"observations" => [obs | _]}} ->
-        case Float.parse(obs["value"]) do
-          {val, _} -> Map.put(acc, code, val)
-          :error -> acc
-        end
+        {val, ""} = Float.parse(obs["value"])
+        Map.put(acc, code, val)
 
       _ ->
         acc
@@ -271,18 +277,34 @@ income_data =
 
 IO.puts("Got income data for #{map_size(income_data)} states")
 
-if map_size(income_data) > 0 do
-  sorted_income = Enum.sort_by(income_data, fn {_, v} -> v end, :desc)
+sorted_income =
+  Enum.sort_by(
+    income_data,
+    fn {_, v} -> v end,
+    :desc
+  )
 
-  IO.puts("\nHighest per capita income:")
-  sorted_income |> Enum.take(5)
-  |> Enum.each(fn {code, v} -> IO.puts("  #{code}: $#{trunc(v)}") end)
+IO.puts("\nHighest states per capita income:")
 
-  IO.puts("\nLowest per capita income:")
-  sorted_income |> Enum.take(-5) |> Enum.reverse()
-  |> Enum.each(fn {code, v} -> IO.puts("  #{code}: $#{trunc(v)}") end)
-end
+sorted_income
+|> Enum.take(5)
+|> Enum.each(fn {code, v} ->
+  IO.puts("\t#{code}: $#{trunc(v)}")
+end)
+
+IO.puts("\nLowest states per capita income:")
+
+sorted_income
+|> Enum.take(-5)
+|> Enum.reverse()
+|> Enum.each(fn {code, v} ->
+  IO.puts("\t#{code}: $#{trunc(v)}")
+end)
 ```
+
+Now that we have the data for per capita income per state, we can update our GeoJSON data
+and render a map with the data. Just as before, we calculate the min, mid and max values
+of the data set and use those values to interpolate the shading of each state.
 
 ```elixir
 income_features =
@@ -302,11 +324,11 @@ income_values =
   |> Enum.map(fn f -> f["properties"]["income"] end)
   |> Enum.reject(&is_nil/1)
 
-inc_min = Enum.min(income_values)
-inc_max = Enum.max(income_values)
-inc_mid = Float.round((inc_min + inc_max) / 2, 0)
+min_value = Enum.min(income_values)
+max_value = Enum.max(income_values)
+mid_value = Float.round((min_value + max_value) / 2, 0)
 
-IO.puts("Income range: $#{trunc(inc_min)} - $#{trunc(inc_max)}")
+IO.puts("Income range: $#{trunc(min_value)} - $#{trunc(max_value)}")
 
 Ml.new(center: map_center, zoom: map_zoom)
 |> Ml.add_source("income", type: :geojson, data: income_geojson)
@@ -319,12 +341,12 @@ Ml.new(center: map_center, zoom: map_zoom)
       "interpolate",
       ["linear"],
       ["get", "income"],
-      inc_min,
-      "#fee0d2",
-      inc_mid,
-      "#fc9272",
-      inc_max,
-      "#de2d26"
+      min_value,
+      "#dc2626",
+      mid_value,
+      "#ca8a04",
+      max_value,
+      "#16a34a"
     ],
     fill_opacity: [
       "case",
@@ -343,6 +365,7 @@ Ml.new(center: map_center, zoom: map_zoom)
 |> Kino.MapLibre.add_hover("income-fill")
 ```
 
-Darker red indicates higher per capita personal income.
+The greener the state, the higher per capita personal income while the red states are ones with
+lower per capita income.
 
-<!-- livebook:{"offset":9057,"stamp":{"token":"XCP.gJK7XaJNSDTl_yxm8qpgat8ou31gIB1AINSH7n5Tl1GRELl2m0itNisZwTjoKELd2E92YRTjgjmMTJfD1e3zE6nV-LZeWGZNtQuqh6bV2W4r2lXUrJqD","version":2}} -->
+<!-- livebook:{"offset":9759,"stamp":{"token":"XCP.WcEfuzpUgxUtBV6uGI2K-tHhb7l3MCCI0E7FeQjEkIWz-g_jjvC9kvwUwu55bx54-Ew9-5L-Y8Zp9EH5pkjT_FMeCl9VmOutlLJeCXTplhoUqXp97rxw","version":2}} -->
