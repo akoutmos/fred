@@ -1,0 +1,348 @@
+# GeoFRED Maps with MapLibre
+
+```elixir
+Mix.install([
+  {:fred, path: Path.join(__DIR__, "..")},
+  {:kino_maplibre, "~> 0.1.13"},
+  {:kino, "~> 0.14"},
+])
+```
+
+## Setup
+
+To being, start by installing the notebook dependencies. This notebook uses the `fred` library for
+API access and `MapLibre` for map rendering.
+
+You'll need a FRED API key before making any API calls. You can get your free API key from the
+[FRED API website](https://fred.stlouisfed.org/docs/api/api_key.html). After you have a FRED API
+key, add it to your Livebook secrets undet the key `FRED_API_KEY` so the the downstream code can
+access it.
+
+With your API key in place, you can set the application configuration for the Fred library and
+attach the default logger.
+
+```elixir
+alias VegaLite, as: Vl
+alias MapLibre, as: Ml
+
+# API key pulled from Livebook secrets
+Application.put_env(:fred, :api_key, System.fetch_env!("LB_FRED_API_KEY"))
+
+# Attach the default logger to keep an eye on requests
+Fred.Telemetry.Logger.attach(level: :info)
+```
+
+## Side Note on GeoFRED Shape Files
+
+You can access the FRED Maps API shape files via `Fred.Maps.shapes/1`. that
+returns boundary data for states, counties, Fed districts, etc. However, the
+coordinates in these responses are quantized integers (e.g. `[1485, 2651]`),
+and not standard WGS84 longitude/latitude. They cannot be rendered directly on a
+web map without a dequantization transform that GeoFRED does not document.
+
+For this notebook, we use standard US boundary GeoJSON from public sources for
+map rendering, and FRED's API for the economic data.
+
+## Render USA States from GeoJSON
+
+We'll use the well-known US states GeoJSON bundled with MapLibre's examples.
+We fetch it up front so we can both render it and merge data into it later.
+
+```elixir
+us_states_url =
+  "https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json"
+
+us_geojson =
+  us_states_url
+  |> Req.get!()
+  |> Map.fetch!(:body)
+  |> JSON.decode!()
+
+features = us_geojson["features"]
+IO.puts("Loaded #{length(features)} state features")
+```
+
+Now that we have the GeoJSON data for the United States, we can pass that data to `MapLibre`
+and render the borders of all the states:
+
+```elixir
+map_center = {-98.5, 39.8}
+map_zoom = 3
+
+Ml.new(center: map_center, zoom: map_zoom)
+|> Ml.add_source("states", type: :geojson, data: us_geojson)
+|> Ml.add_layer_below_labels(
+  id: "state-borders",
+  type: :line,
+  source: "states",
+  paint: [line_color: "#627BC1", line_width: 1.5]
+)
+```
+
+## Overlay Map With Fred Unemployment Data
+
+FRED names state unemployment series as `"{STATE_CODE}UR"` - for example,
+`"TXUR"` for Texas, `"CAUR"` for California. Let's fetch the latest value
+for every state.
+
+```elixir
+state_codes = ~w(
+  AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME
+  MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI
+  SC SD TN TX UT VT VA WA WV WI WY
+)
+
+state_data =
+  state_codes
+  |> Enum.reduce(%{}, fn code, acc ->
+    series_id = "#{code}UR"
+
+    case Fred.Series.observations(series_id, sort_order: :desc, limit: 1) do
+      {:ok, %{"observations" => [obs | _]}} ->
+        {value, ""} = Float.parse(obs["value"])
+        Map.put(acc, code, %{value: value, date: obs["date"]})
+
+      _ ->
+        acc
+    end
+  end)
+
+IO.puts("Got data for #{map_size(state_data)} of #{length(state_codes)} states")
+```
+
+We merge unemployment values into the GeoJSON features by matching state
+names, then use a MapLibre `interpolate` expression for the color gradient.
+
+```elixir
+# State name → abbreviation mapping for joining
+name_to_code = %{
+  "Alabama" => "AL",
+  "Alaska" => "AK",
+  "Arizona" => "AZ",
+  "Arkansas" => "AR",
+  "California" => "CA",
+  "Colorado" => "CO",
+  "Connecticut" => "CT",
+  "Delaware" => "DE",
+  "District of Columbia" => "DC",
+  "Florida" => "FL",
+  "Georgia" => "GA",
+  "Hawaii" => "HI",
+  "Idaho" => "ID",
+  "Illinois" => "IL",
+  "Indiana" => "IN",
+  "Iowa" => "IA",
+  "Kansas" => "KS",
+  "Kentucky" => "KY",
+  "Louisiana" => "LA",
+  "Maine" => "ME",
+  "Maryland" => "MD",
+  "Massachusetts" => "MA",
+  "Michigan" => "MI",
+  "Minnesota" => "MN",
+  "Mississippi" => "MS",
+  "Missouri" => "MO",
+  "Montana" => "MT",
+  "Nebraska" => "NE",
+  "Nevada" => "NV",
+  "New Hampshire" => "NH",
+  "New Jersey" => "NJ",
+  "New Mexico" => "NM",
+  "New York" => "NY",
+  "North Carolina" => "NC",
+  "North Dakota" => "ND",
+  "Ohio" => "OH",
+  "Oklahoma" => "OK",
+  "Oregon" => "OR",
+  "Pennsylvania" => "PA",
+  "Rhode Island" => "RI",
+  "South Carolina" => "SC",
+  "South Dakota" => "SD",
+  "Tennessee" => "TN",
+  "Texas" => "TX",
+  "Utah" => "UT",
+  "Vermont" => "VT",
+  "Virginia" => "VA",
+  "Washington" => "WA",
+  "West Virginia" => "WV",
+  "Wisconsin" => "WI",
+  "Wyoming" => "WY"
+}
+
+# Merge unemployment values into the GeoJSON features
+merged_features =
+  us_geojson["features"]
+  |> Enum.map(fn feature ->
+    name = feature["properties"]["name"]
+    code = Map.get(name_to_code, name)
+    value = if code, do: get_in(state_data, [code, :value])
+
+    feature
+    |> put_in(["properties", "unemployment"], value)
+    |> put_in(["properties", "state_code"], code)
+  end)
+
+merged_geojson = Map.put(us_geojson, "features", merged_features)
+
+matched =
+  Enum.count(merged_features, fn feature ->
+    feature["properties"]["unemployment"] != nil
+  end)
+
+IO.puts("Matched #{matched} of #{length(merged_features)} features with unemployment data")
+```
+
+### Render the Choropleth
+
+```elixir
+values =
+  merged_features
+  |> Enum.map(fn f -> f["properties"]["unemployment"] end)
+  |> Enum.reject(&is_nil/1)
+
+min_val = Enum.min(values)
+max_val = Enum.max(values)
+mid_val = Float.round((min_val + max_val) / 2, 1)
+
+IO.puts("Unemployment range: #{min_val}% - #{max_val}% (mid: #{mid_val}%)")
+
+Ml.new(center: map_center, zoom: map_zoom)
+|> Ml.add_source("unemployment", type: :geojson, data: merged_geojson)
+|> Ml.add_layer_below_labels(
+  id: "unemployment-fill",
+  type: :fill,
+  source: "unemployment",
+  paint: [
+    fill_color: [
+      "interpolate",
+      ["linear"],
+      ["get", "unemployment"],
+      min_val,
+      "#2166ac",
+      mid_val,
+      "#f7f7f7",
+      max_val,
+      "#b2182b"
+    ],
+    fill_opacity: [
+      "case",
+      ["has", "unemployment"],
+      0.75,
+      0.1
+    ]
+  ]
+)
+|> Ml.add_layer_below_labels(
+  id: "unemployment-borders",
+  type: :line,
+  source: "unemployment",
+  paint: [line_color: "#333333", line_width: 0.5]
+)
+|> Kino.MapLibre.add_hover("unemployment-fill")
+```
+
+Blue states have lower unemployment; red states have higher. Hover to highlight.
+
+## Part 6: Per Capita Income - A Second Choropleth
+
+Let's build another choropleth with a different indicator. FRED has
+**per capita personal income** data per state, with series IDs like
+`"{STATE_CODE}PCPI"`.
+
+```elixir
+IO.puts("Fetching per capita income for each state...\n")
+
+income_data =
+  state_codes
+  |> Enum.reduce(%{}, fn code, acc ->
+    series_id = "#{code}PCPI"
+
+    case Fred.Series.observations(series_id, sort_order: :desc, limit: 1) do
+      {:ok, %{"observations" => [obs | _]}} ->
+        case Float.parse(obs["value"]) do
+          {val, _} -> Map.put(acc, code, val)
+          :error -> acc
+        end
+
+      _ ->
+        acc
+    end
+  end)
+
+IO.puts("Got income data for #{map_size(income_data)} states")
+
+if map_size(income_data) > 0 do
+  sorted_income = Enum.sort_by(income_data, fn {_, v} -> v end, :desc)
+
+  IO.puts("\nHighest per capita income:")
+  sorted_income |> Enum.take(5)
+  |> Enum.each(fn {code, v} -> IO.puts("  #{code}: $#{trunc(v)}") end)
+
+  IO.puts("\nLowest per capita income:")
+  sorted_income |> Enum.take(-5) |> Enum.reverse()
+  |> Enum.each(fn {code, v} -> IO.puts("  #{code}: $#{trunc(v)}") end)
+end
+```
+
+```elixir
+income_features =
+  us_geojson["features"]
+  |> Enum.map(fn feature ->
+    name = feature["properties"]["name"]
+    code = Map.get(name_to_code, name)
+    value = if code, do: Map.get(income_data, code)
+
+    put_in(feature, ["properties", "income"], value)
+  end)
+
+income_geojson = Map.put(us_geojson, "features", income_features)
+
+income_values =
+  income_features
+  |> Enum.map(fn f -> f["properties"]["income"] end)
+  |> Enum.reject(&is_nil/1)
+
+inc_min = Enum.min(income_values)
+inc_max = Enum.max(income_values)
+inc_mid = Float.round((inc_min + inc_max) / 2, 0)
+
+IO.puts("Income range: $#{trunc(inc_min)} - $#{trunc(inc_max)}")
+
+Ml.new(center: map_center, zoom: map_zoom)
+|> Ml.add_source("income", type: :geojson, data: income_geojson)
+|> Ml.add_layer_below_labels(
+  id: "income-fill",
+  type: :fill,
+  source: "income",
+  paint: [
+    fill_color: [
+      "interpolate",
+      ["linear"],
+      ["get", "income"],
+      inc_min,
+      "#fee0d2",
+      inc_mid,
+      "#fc9272",
+      inc_max,
+      "#de2d26"
+    ],
+    fill_opacity: [
+      "case",
+      ["has", "income"],
+      0.75,
+      0.1
+    ]
+  ]
+)
+|> Ml.add_layer_below_labels(
+  id: "income-borders",
+  type: :line,
+  source: "income",
+  paint: [line_color: "#333333", line_width: 0.5]
+)
+|> Kino.MapLibre.add_hover("income-fill")
+```
+
+Darker red indicates higher per capita personal income.
+
+<!-- livebook:{"offset":9057,"stamp":{"token":"XCP.gJK7XaJNSDTl_yxm8qpgat8ou31gIB1AINSH7n5Tl1GRELl2m0itNisZwTjoKELd2E92YRTjgjmMTJfD1e3zE6nV-LZeWGZNtQuqh6bV2W4r2lXUrJqD","version":2}} -->

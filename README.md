@@ -142,14 +142,11 @@ notebooks that demonstrate the library with live charts:
 | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | [`1_getting_started.livemd`](./livebooks/1_getting_started.livemd)           | Series lookup, observations, search, area charts, and FRED's built-in transformations |
 | [`2_comparing_indicators.livemd`](./livebooks/2_comparing_indicators.livemd) | Multi-series overlays, normalized comparisons, Treasury yield curves                  |
-| [`3_inflation_deep_dive.livemd`](./livebooks/3_inflation_deep_dive.livemd)   | CPI vs. Core vs. PCE, category breakdowns, heatmaps, Fed response                     |
-| [`4_geofred_maplibre.livemd`](./livebooks/4_geo_fred_maplibre.livemd)        | GeoFRED shapes on MapLibre, Geo struct integration, unemployment choropleth           |
+| [`3_geofred_maplibre.livemd`](./livebooks/3_geo_fred_maplibre.livemd)        | GeoFRED shapes on MapLibre, Geo struct integration, unemployment choropleth           |
 
 To run them, open Livebook, set the `FRED_API_KEY` environment variable, and
-open any `.livemd` file. Notebooks 01–03 use [VegaLite](https://hexdocs.pm/vega_lite)
-for charting; notebook 04 uses [MapLibre](https://hexdocs.pm/maplibre) for
-interactive geographic maps and the [Geo](https://hexdocs.pm/geo) library for
-GeoJSON struct conversion.
+open any `.livemd` file to see how you can use this library in conjunction with
+[VegaLite](https://hexdocs.pm/vega_lite) and [MapLibre](https://hexdocs.pm/maplibre).
 
 ## Telemetry
 
