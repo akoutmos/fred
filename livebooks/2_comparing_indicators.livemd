@@ -2,7 +2,7 @@
 
 ```elixir
 Mix.install([
-  {:fred, "~> 0.1"},
+  {:fred, "~> 0.0.1"},
   {:vega_lite, "~> 0.1"},
   {:kino_vega_lite, "~> 0.1"}
 ])
@@ -61,7 +61,7 @@ defmodule FredHelper do
 
       %{"date" => date, "value" => value}, acc ->
         {value, ""} = Float.parse(value)
-        
+
         data = %{
           date: Date.from_iso8601!(date),
           value: value,
@@ -100,8 +100,8 @@ end
 
 Two of the most-watched economic indicators are:
 
-* The unemployment rate
-* The Fed's benchmark interest rate
+- The unemployment rate
+- The Fed's benchmark interest rate
 
 When the Fed cuts interest rates, it's often in response to rising unemployment. Let's collect the
 data for the `UNRATE` and `FEDFUNDS` series and then plot the two series:
@@ -150,9 +150,9 @@ Vl.new(
 
 Let's now create a chart that overlays three labor market indicators:
 
-* **UNRATE** - Unemployment Rate
-* **PAYEMS** - All Employees, Total Nonfarm (thousands)
-* **CIVPART** - Civilian Labor Force Participation Rate
+- **UNRATE** - Unemployment Rate
+- **PAYEMS** - All Employees, Total Nonfarm (thousands)
+- **CIVPART** - Civilian Labor Force Participation Rate
 
 These three series can help you gauge the status of the labor market. Given that all three
 of these series have different scales, we'll normalize each series to show percent change from a

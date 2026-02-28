@@ -2,7 +2,7 @@
 
 ```elixir
 Mix.install([
-  {:fred, "~> 0.1"},
+  {:fred, "~> 0.0.1"},
   {:vega_lite, "~> 0.1"},
   {:kino_vega_lite, "~> 0.1"}
 ])
@@ -36,14 +36,14 @@ what data we can extract from FRED.
 
 ## Exploring a Series
 
-We'll begin by looking up metadata for the *Unemployment Rate* series (which has the key
+We'll begin by looking up metadata for the _Unemployment Rate_ series (which has the key
 `UNRATE`). The meta data will include things like the frequency of the series, the human readable
 name, and the units of the series.
 
 ```elixir
 # We use the `Fred.Series.get/1` function to get metadata about the `UNRATE` series and pluck
 # the head of the response list.
-{:ok, %{"seriess" => [data | _]}} = 
+{:ok, %{"seriess" => [data | _]}} =
   Fred.Series.get("UNRATE")
 
 # Print out some of the metadata from the series
@@ -163,10 +163,10 @@ recession_periods =
         {:cont, %{start: Date.from_iso8601!(start_date), end: Date.from_iso8601!(date)}, nil}
     end,
     fn
-      nil -> 
+      nil ->
         {:cont, nil}
-        
-      start_date -> 
+
+      start_date ->
         {:cont, %{start: start_date, end: Date.utc_today()}, nil}
     end
   )
@@ -212,7 +212,7 @@ Vl.new(width: 750, height: 400, title: "U.S. Unemployment Rate with Recession Sh
 ## Using FRED's Built-in Transformations
 
 The FRED API can also compute percent changes and format the response payload accordingly. You
-can do this via the `:units` option. Let's look at *month-over-month percent change* in the unemployment rate.
+can do this via the `:units` option. Let's look at _month-over-month percent change_ in the unemployment rate.
 
 ```elixir
 {:ok, %{"observations" => pch_observations}} =
@@ -230,7 +230,7 @@ formatted_pch_observations =
 
     %{"date" => date, "value" => value}, acc ->
       value = String.to_float(value)
-      
+
       data = %{
         date: Date.from_iso8601!(date),
         value: value,
