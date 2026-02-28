@@ -32,7 +32,7 @@ Fred.Telemetry.Logger.attach(level: :info)
 ```
 
 With that you are ready to rock and roll! Let's now take a look at some simple endpoints to see
-what data we can extract from FRED..
+what data we can extract from FRED.
 
 ## Exploring a Series
 
@@ -305,4 +305,4 @@ search_results
 end)
 ```
 
-<!-- livebook:{"offset":8662,"stamp":{"token":"XCP.CpET2vC2DgROvTdHaKpWPXm4MOmPB8gTSEpQdzYeXoAX9u-4dx2YiTHsrMSiioohwFjfXlWG1_cZ_jeZAQdoO867lHvBZgwmMGc5Y-3rbh4A7DwGi6-j","version":2}} -->
+<!-- livebook:{"offset":8661,"stamp":{"token":"XCP.sLHQc4a_vpRLkyykbTcuujteZygVKKMLtERQAG0SHuqqRwgLChg8x4wK1pSLiDVhLCrDUBRWrw2TixZ7Tgxr6nzpWR6B6XJNAwKKylcThabd26hZ2QBA","version":2}} -->
