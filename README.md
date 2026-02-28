@@ -37,9 +37,11 @@ Fred, but it is a complete Fred API client and can be used outside the context o
 To learn how you can analyze and visualize the financial markets using Livebook, Explorer, Scholar and Nx, be sure to pick up
 a copy of our book:
 
-<a href="https://financialanalytics.dev">
-  <img align="center" width="50%" src="guides/images/book_cover.png" alt="Financial Analytics Using Elixir book cover" style="margin-left:25%">
-</a>
+<p align="center">
+  <a href="https://financialanalytics.dev">
+    <img width="50%" src="guides/images/book_cover.png" alt="Financial Analytics Using Elixir book cover">
+  </a>
+</p>
 
 # Contents
 
