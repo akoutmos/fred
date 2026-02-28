@@ -1,0 +1,511 @@
+defmodule Fred.Series do
+  @moduledoc """
+  Functions for the FRED Series endpoints.
+
+  Series are the core data type in FRED - each series is a time series of
+  economic observations (e.g., GDP, unemployment rate, CPI).
+
+  ## Endpoints
+
+    - `get/2` - [`/fred/series`](https://fred.stlouisfed.org/docs/api/fred/series.html) - Get series metadata
+    - `categories/2` - [`/fred/series/categories`](https://fred.stlouisfed.org/docs/api/fred/series_categories.html) - Get categories for a series
+    - `observations/2` - [`/fred/series/observations`](https://fred.stlouisfed.org/docs/api/fred/series_observations.html) - Get the actual data values
+    - `release/2` - [`/fred/series/release`](https://fred.stlouisfed.org/docs/api/fred/series_release.html) - Get the release a series belongs to
+    - `search/2` - [`/fred/series/search`](https://fred.stlouisfed.org/docs/api/fred/series_search.html) - Search for series by text
+    - `search_tags/2` - [`/fred/series/search/tags`](https://fred.stlouisfed.org/docs/api/fred/series_search_tags.html) - Get tags for a search
+    - `search_related_tags/2` - [`/fred/series/search/related_tags`](https://fred.stlouisfed.org/docs/api/fred/series_search_related_tags.html)
+    - `tags/2` - [`/fred/series/tags`](https://fred.stlouisfed.org/docs/api/fred/series_tags.html) - Get tags for a series
+    - `updates/1` - [`/fred/series/updates`](https://fred.stlouisfed.org/docs/api/fred/series_updates.html) - Get recently updated series
+    - `vintage_dates/2` - [`/fred/series/vintagedates`](https://fred.stlouisfed.org/docs/api/fred/series_vintagedates.html) - Get revision dates
+  """
+
+  require Explorer.DataFrame
+
+  alias Explorer.DataFrame
+  alias Fred.Client
+  alias Fred.Utils
+
+  @get_schema Utils.generate_schema([:realtime_range])
+
+  @categories_schema Utils.generate_schema([:realtime_range])
+
+  @release_schema Utils.generate_schema([:realtime_range])
+
+  @observations_schema Utils.generate_schema([
+                         :realtime_range,
+                         :sort_order,
+                         :units,
+                         :frequency,
+                         :aggregation_method,
+                         :output_type,
+                         :vintage_dates,
+                         {:pagination, 100_000},
+                         {:date, :observation_start, "Start date for observations."},
+                         {:date, :observation_end, "End date for observations."}
+                       ])
+
+  @vintage_dates_schema Utils.generate_schema([
+                          :realtime_range,
+                          :sort_order,
+                          {:pagination, 10_000}
+                        ])
+
+  @series_updates_schema Utils.generate_schema([
+                           :realtime_range,
+                           :sort_order,
+                           {:pagination, 1_000},
+                           {:atom_enum, :filter_value, [:macro, :regional, :all]},
+                           {:naive_date_time, :start_time, "Start time for filtering updates."},
+                           {:naive_date_time, :end_time, "End time for filtering updates."}
+                         ])
+
+  @series_tags_schema Utils.generate_schema([
+                        :realtime_range,
+                        {:order_by,
+                         [
+                           :series_count,
+                           :popularity,
+                           :created,
+                           :name,
+                           :group_id
+                         ]}
+                      ])
+
+  @search_schema Utils.generate_schema([
+                   :realtime_range,
+                   :filter_variable_value,
+                   :tag_names,
+                   :exclude_tag_names,
+                   {:atom_enum, :search_type,
+                    [
+                      full_text: "Searches title, units, frequency, and tags",
+                      series_id: "Substring search on series IDs"
+                    ]},
+                   {:pagination, 1_000},
+                   {:order_by,
+                    [
+                      :search_rank,
+                      :series_id,
+                      :title,
+                      :units,
+                      :frequency,
+                      :seasonal_adjustment,
+                      :realtime_start,
+                      :realtime_end,
+                      :last_updated,
+                      :observation_start,
+                      :observation_end,
+                      :popularity,
+                      :group_popularit
+                    ]}
+                 ])
+
+  @search_tags_schema Utils.generate_schema([
+                        :realtime_range,
+                        :tag_names,
+                        :tag_group_id,
+                        :tag_search_text,
+                        {:pagination, 1_000},
+                        {:order_by,
+                         [
+                           :series_count,
+                           :popularity,
+                           :created,
+                           :name,
+                           :group_id
+                         ]}
+                      ])
+
+  @search_related_tags_schema Utils.generate_schema([
+                                :realtime_range,
+                                :exclude_tag_names,
+                                :tag_search_text,
+                                :tag_group_id,
+                                {:pagination, 1_000},
+                                {:order_by,
+                                 [
+                                   :series_count,
+                                   :popularity,
+                                   :created,
+                                   :name,
+                                   :group_id
+                                 ]}
+                              ])
+
+  @doc """
+  Get an economic data series.
+
+  Returns metadata about a series including its title, frequency, units,
+  seasonal adjustment, and more.
+
+  ## Options
+
+    #{NimbleOptions.docs(@get_schema)}
+
+  ## Examples
+
+      iex> {:ok, series} = Fred.Series.get("GDP")
+      iex> %{"seriess" => [_ | _]} = series
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Series.get("GDP", realtime_start: "Bad Input")
+  """
+  @spec get(series_id :: String.t(), opts :: keyword()) :: Client.response()
+  def get(series_id, opts \\ []) do
+    with :ok <- Utils.validate_opts(opts, @get_schema) do
+      params = Keyword.put(opts, :series_id, series_id)
+      Client.get_json("/series", params)
+    end
+  end
+
+  @doc """
+  Get the categories for an economic data series.
+
+  ## Options
+
+    #{NimbleOptions.docs(@categories_schema)}
+
+  ## Examples
+
+      iex> {:ok, categories} = Fred.Series.categories("UNRATE")
+      iex> %{"categories" => [_ | _]} = categories
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Series.categories("UNRATE", realtime_start: "Bad Input")
+  """
+  @spec categories(series_id :: String.t(), opts :: keyword()) :: Client.response()
+  def categories(series_id, opts \\ []) do
+    with :ok <- Utils.validate_opts(opts, @categories_schema) do
+      params = Keyword.put(opts, :series_id, series_id)
+      Client.get_json("/series/categories", params)
+    end
+  end
+
+  @doc """
+  Get the observations or data values for an economic data series.
+
+  This is the primary function for retrieving actual time series data from FRED.
+
+  ## Options
+
+    #{NimbleOptions.docs(@observations_schema)}
+
+  ## Examples
+
+      iex> {:ok, observations} = Fred.Series.observations("UNRATE")
+      iex> %{"observations" => [_ | _]} = observations
+
+      iex> {:ok, observations} =
+      ...>   Fred.Series.observations("GDP",
+      ...>     observation_start: ~D[2020-01-01],
+      ...>     frequency: :q,
+      ...>     units: :pch
+      ...>   )
+      iex> %{"observations" => [_ | _]} = observations
+
+      iex> {:ok, observations} =
+      ...>   Fred.Series.observations("GDP",
+      ...>     vintage_dates: [~D[2015-01-01], ~D[2015-07-01]]
+      ...>   )
+      iex> %{"observations" => [_ | _]} = observations
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Series.observations("GDP", realtime_start: "Bad Input")
+  """
+  @spec observations(series_id :: String.t(), opts :: keyword()) :: Client.response()
+  def observations(series_id, opts \\ []) do
+    with :ok <- Utils.validate_opts(opts, @observations_schema) do
+      params =
+        opts
+        |> Keyword.put(:series_id, series_id)
+        |> Keyword.replace_lazy(:vintage_dates, fn dates ->
+          Enum.map_join(dates, ",", fn date ->
+            Date.to_iso8601(date)
+          end)
+        end)
+
+      Client.get_json("/series/observations", params)
+    end
+  end
+
+  @doc """
+  Same as `observations/2` except this returns the observation data
+  inside of an `Explorer.DataFrame`. You can also pass in a list of
+  series ids and all of the series will be packaged into the
+  `Explorer.DataFrame`. Since series can all have different dates,
+  the union of all of the dates across all of the series will populate
+  the date column and series without data for that date will have a nil
+  value.
+
+  ## Options
+
+    #{NimbleOptions.docs(@observations_schema)}
+
+  ## Examples
+
+      iex> %Explorer.DataFrame{} = Fred.Series.observations_as_data_frame("GDP")
+
+      iex> %Explorer.DataFrame{} =
+      ...>   Fred.Series.observations_as_data_frame(["GDP", "UNRATE"],
+      ...>     observation_start: ~D[2020-01-01],
+      ...>     frequency: :q,
+      ...>     units: :pch
+      ...>   )
+
+      iex> %Explorer.DataFrame{} =
+      ...>   Fred.Series.observations_as_data_frame("GDP",
+      ...>     vintage_dates: [~D[2015-01-01], ~D[2015-07-01]]
+      ...>   )
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Series.observations_as_data_frame("GDP", realtime_start: "Bad Input")
+  """
+  @spec observations(series_ids :: list() | String.t(), opts :: keyword()) :: {:ok, DataFrame.t()} | {:error, term()}
+  def observations_as_data_frame(series_ids, opts \\ [])
+
+  def observations_as_data_frame(series_ids, opts) when is_list(series_ids) do
+    with :ok <- Utils.validate_opts(opts, @observations_schema) do
+      timeout = Application.get_env(:fred, :timeout, 30_000)
+
+      data_frame =
+        series_ids
+        |> Task.async_stream(
+          fn series_id ->
+            case observations(series_id, opts) do
+              {:ok, %{"observations" => observations}} when is_list(observations) ->
+                {series_id, observations}
+
+              _error ->
+                nil
+            end
+          end,
+          max_concurrency: 5,
+          timeout: timeout
+        )
+        |> Enum.reduce([], fn
+          {:ok, observations}, acc when not is_nil(observations) ->
+            [observations | acc]
+
+          _, acc ->
+            acc
+        end)
+        |> Enum.flat_map(fn {series_id, observations} ->
+          observations
+          |> Enum.reject(fn
+            %{"value" => "."} -> true
+            %{"value" => nil} -> true
+            _ -> false
+          end)
+          |> Enum.reduce([], fn observation, acc ->
+            case Decimal.parse(observation["value"]) do
+              {value, ""} ->
+                date = Date.from_iso8601!(observation["date"])
+                data = %{date: date, series_id: series_id, value: value}
+                [data | acc]
+
+              :error ->
+                acc
+            end
+          end)
+        end)
+        |> DataFrame.new()
+
+      columns = DataFrame.names(data_frame)
+
+      if "series_id" in columns and "value" in columns do
+        data_frame
+        |> DataFrame.pivot_wider("series_id", "value")
+        |> DataFrame.sort_by(date)
+      else
+        data_frame
+      end
+    end
+  end
+
+  def observations_as_data_frame(series_id, opts) do
+    observations_as_data_frame([series_id], opts)
+  end
+
+  @doc """
+  Get the release for an economic data series.
+
+  ## Options
+
+    #{NimbleOptions.docs(@release_schema)}
+
+  ## Examples
+
+      iex> {:ok, release} = Fred.Series.release("GDP")
+      iex> %{"releases" => [_ | _]} = release
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Series.release("GDP", realtime_start: "Bad Input")
+  """
+  @spec release(series_id :: String.t(), opts :: keyword()) :: Client.response()
+  def release(series_id, opts \\ []) do
+    with :ok <- Utils.validate_opts(opts, @release_schema) do
+      params = Keyword.put(opts, :series_id, series_id)
+      Client.get_json("/series/release", params)
+    end
+  end
+
+  @doc """
+  Search for economic data series that match keywords.
+
+  ## Options
+
+    #{NimbleOptions.docs(@search_schema)}
+
+  ## Examples
+
+      iex> {:ok, series} = Fred.Series.search("UNRATE", search_type: :series_id)
+      iex> %{"seriess" => [_ | _]} = series
+
+      iex> {:ok, series} =
+      ...>   Fred.Series.search("unemployment rate",
+      ...>     order_by: :popularity,
+      ...>     sort_order: :desc,
+      ...>     limit: 10
+      ...>   )
+      iex> %{"seriess" => [_ | _]} = series
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Series.search("UNRATE", search_type: "Bad search type")
+  """
+  @spec search(search_text :: String.t(), opts :: keyword()) :: Client.response()
+  def search(search_text, opts \\ []) do
+    with :ok <- Utils.validate_opts(opts, @search_schema) do
+      params = Keyword.put(opts, :search_text, search_text)
+      Client.get_json("/series/search", params)
+    end
+  end
+
+  @doc """
+  Get the tags for a series search.
+
+  Returns the FRED tags that are assigned to series matching the search text.
+
+  ## Options
+
+    #{NimbleOptions.docs(@search_tags_schema)}
+
+  ## Examples
+
+      iex> {:ok, tags} = Fred.Series.search_tags("monetary service index")
+      iex> %{"tags" => [_ | _]} = tags
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Series.search_tags("monetary service index", realtime_start: "Bad Input")
+  """
+  @spec search_tags(search_text :: String.t(), opts :: keyword()) :: Client.response()
+  def search_tags(search_text, opts \\ []) do
+    with :ok <- Utils.validate_opts(opts, @search_tags_schema) do
+      params = Keyword.put(opts, :series_search_text, search_text)
+      Client.get_json("/series/search/tags", params)
+    end
+  end
+
+  @doc """
+  Get the related tags for a series search.
+
+  Returns tags assigned to series that match all tags in `:tag_names`
+  and the search text.
+
+  ## Options
+
+    #{NimbleOptions.docs(@search_related_tags_schema)}
+
+  ## Examples
+
+      iex> {:ok, tags} = Fred.Series.search_related_tags("mortgage rate", ["30-year", "frb"])
+      iex> %{"tags" => [_ | _]} = tags
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Series.search_related_tags("monetary service index", ["30-year", "frb"], realtime_start: "Bad Input")
+  """
+  @spec search_related_tags(search_text :: String.t(), tag_names :: String.t(), opts :: keyword()) :: Client.response()
+  def search_related_tags(search_text, tag_names, opts \\ []) do
+    with :ok <- Utils.validate_opts(opts, @search_related_tags_schema) do
+      params =
+        opts
+        |> Keyword.put(:series_search_text, search_text)
+        |> Keyword.put(:tag_names, tag_names)
+
+      Client.get_json("/series/search/related_tags", params)
+    end
+  end
+
+  @doc """
+  Get the FRED tags for an economic data series.
+
+  ## Options
+
+    #{NimbleOptions.docs(@series_tags_schema)}
+
+  ## Examples
+
+      iex> {:ok, tags} = Fred.Series.tags("UNRATE")
+      iex> %{"tags" => [_ | _]} = tags
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Series.tags("UNRATE", realtime_start: "Bad Input")
+  """
+  @spec tags(series_id :: String.t(), opts :: keyword()) :: Client.response()
+  def tags(series_id, opts \\ []) do
+    with :ok <- Utils.validate_opts(opts, @series_tags_schema) do
+      params = Keyword.put(opts, :series_id, series_id)
+      Client.get_json("/series/tags", params)
+    end
+  end
+
+  @doc """
+  Get economic data series sorted by when observations were updated on the FRED server.
+
+  Results are limited to series updated within the last two weeks.
+
+  ## Options
+
+    #{NimbleOptions.docs(@series_updates_schema)}
+
+  ## Examples
+
+      iex> {:ok, series} = Fred.Series.updates(limit: 20, filter_value: :macro)
+      iex> %{"seriess" => [_ | _]} = series
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Series.updates(realtime_start: "Bad Input")
+  """
+  @spec updates(opts :: keyword()) :: Client.response()
+  def updates(opts \\ []) do
+    with :ok <- Utils.validate_opts(opts, @series_updates_schema) do
+      Client.get_json("/series/updates", opts)
+    end
+  end
+
+  @doc """
+  Get the dates in history when a series' data values were revised or new data
+  values were released.
+
+  Vintage dates are the release dates for a series excluding release dates when
+  the data for the series did not change.
+
+  ## Options
+
+    #{NimbleOptions.docs(@vintage_dates_schema)}
+
+  ## Examples
+
+      iex> {:ok, vintage_dates} = Fred.Series.vintage_dates("GDP")
+      iex> %{"vintage_dates" => [_ | _]} = vintage_dates
+
+      iex> {:error, %Fred.Error{type: :option_error}} =
+      ...>   Fred.Series.vintage_dates("GDP", realtime_start: "Bad Input")
+  """
+  @spec vintage_dates(series_id :: String.t(), opts :: keyword()) :: Client.response()
+  def vintage_dates(series_id, opts \\ []) do
+    with :ok <- Utils.validate_opts(opts, @vintage_dates_schema) do
+      params = Keyword.put(opts, :series_id, series_id)
+      Client.get_json("/series/vintagedates", params)
+    end
+  end
+end

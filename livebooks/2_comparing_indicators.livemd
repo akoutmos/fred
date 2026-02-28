@@ -1,0 +1,211 @@
+# Comparing Economic Indicators
+
+```elixir
+Mix.install([
+  {:fred, "~> 0.1"},
+  {:vega_lite, "~> 0.1"},
+  {:kino_vega_lite, "~> 0.1"}
+])
+```
+
+## Setup
+
+To being, start by installing the notebook dependencies. This notebook uses the `fred` library for
+API access and `VegaLite` for charting.
+
+You'll need a FRED API key before making any API calls. You can get your free API key from the
+[FRED API website](https://fred.stlouisfed.org/docs/api/api_key.html). After you have a FRED API
+key, add it to your Livebook secrets undet the key `FRED_API_KEY` so the the downstream code can
+access it.
+
+With your API key in place, you can set the application configuration for the Fred library and
+attach the default logger.
+
+```elixir
+alias VegaLite, as: Vl
+
+# API key pulled from Livebook secrets
+Application.put_env(:fred, :api_key, System.fetch_env!("LB_FRED_API_KEY"))
+
+# Attach the default logger to keep an eye on requests
+Fred.Telemetry.Logger.attach(level: :info)
+```
+
+With that you are ready to rock and roll! Let's now take a look at some simple endpoints to see
+what data we can extract from FRED.
+
+## Helper Module to Fetch & Parse Observations
+
+To make it easier to fetch and plot multiple time series, let's write a helper module to format
+fetched observations.
+
+```elixir
+defmodule FredHelper do
+  @doc """
+  Fetches observations for a FRED series and returns a list of maps with
+  `:date`, `:value`, and `:series` keys for VegaLite to easily plot.
+
+  This function accepts the same options as `Fred.Series.observations/2`.
+  """
+  def fetch_observations(series_id, opts \\ []) do
+    {:ok, data} = Fred.Series.observations(series_id, opts)
+
+    # Look up the series title for nice legend labels
+    {:ok, meta} = Fred.Series.get(series_id)
+    title = hd(meta["seriess"])["title"]
+
+    data["observations"]
+    |> Enum.reduce([], fn
+      %{"value" => "."}, acc ->
+        acc
+
+      %{"date" => date, "value" => value}, acc ->
+        {value, ""} = Float.parse(value)
+        
+        data = %{
+          date: Date.from_iso8601!(date),
+          value: value,
+          series: title
+        }
+
+        [data | acc]
+    end)
+    |> Enum.sort_by(
+      fn %{date: date} ->
+        date
+      end,
+      Date
+    )
+  end
+
+  @doc """
+  Fetches multiple series and merges them into a single dataset.
+  Each series gets its own `series_id` and opts from the list of tuples.
+  A shared set of common opts is applied to all.
+  """
+  def fetch_many(series_list, common_opts \\ []) do
+    series_list
+    |> Enum.flat_map(fn
+      {id, opts} ->
+        fetch_observations(id, Keyword.merge(common_opts, opts))
+
+      id when is_binary(id) ->
+        fetch_observations(id, common_opts)
+    end)
+  end
+end
+```
+
+## Unemployment vs. Federal Funds Rate
+
+Two of the most-watched economic indicators are:
+
+* The unemployment rate
+* The Fed's benchmark interest rate
+
+When the Fed cuts interest rates, it's often in response to rising unemployment. Let's collect the
+data for the `UNRATE` and `FEDFUNDS` series and then plot the two series:
+
+```elixir
+fed_funds_v_urate_data =
+  FredHelper.fetch_many(
+    ["UNRATE", "FEDFUNDS"],
+    observation_start: ~D[2000-01-01],
+    frequency: :m
+  )
+
+:ok
+```
+
+Now that we have the time series data for both the unemployment rate and the federal funds rate
+we can create another `VegaLite` chart definition and plot both series:
+
+```elixir
+Vl.new(
+  width: 750,
+  height: 400,
+  title: "Unemployment Rate vs. Federal Funds Rate (2000–Present)"
+)
+|> Vl.data_from_values(fed_funds_v_urate_data)
+|> Vl.mark(:line, tooltip: true, stroke_width: 2)
+|> Vl.encode_field(:x, "date",
+  type: :temporal,
+  title: "Date",
+  axis: [format: "%Y"]
+)
+|> Vl.encode_field(:y, "value",
+  type: :quantitative,
+  title: "Rate (%)",
+  scale: [zero: false]
+)
+|> Vl.encode_field(:color, "series",
+  type: :nominal,
+  title: "Indicator",
+  scale: [range: ["#2563eb", "#dc2626"]]
+)
+|> Vl.encode_field(:stroke_dash, "series", type: :nominal)
+```
+
+## Labor Market Dashboard
+
+Let's now create a chart that overlays three labor market indicators:
+
+* **UNRATE** - Unemployment Rate
+* **PAYEMS** - All Employees, Total Nonfarm (thousands)
+* **CIVPART** - Civilian Labor Force Participation Rate
+
+These three series can help you gauge the status of the labor market. Given that all three
+of these series have different scales, we'll normalize each series to show percent change from a
+common start date.
+
+```elixir
+normalize_time_series = fn [first_observation | _rest_observations] = observations ->
+  base_value = first_observation.value
+
+  Enum.map(observations, fn observation ->
+    Map.update!(observation, :value, fn existing_value ->
+      Float.round((existing_value - base_value) / abs(base_value) * 100.0, 2)
+    end)
+  end)
+end
+
+labor_data =
+  ["UNRATE", "PAYEMS", "CIVPART"]
+  |> Enum.flat_map(fn id ->
+    FredHelper.fetch_observations(id,
+      observation_start: ~D[2007-01-01],
+      frequency: :m
+    )
+    |> normalize_time_series.()
+  end)
+
+IO.puts("Total observations: #{length(labor_data)}")
+```
+
+Now that we have the time series data for for all these labor market series we can create another
+`VegaLite` chart definition and plot all three series:
+
+```elixir
+Vl.new(
+  width: 700,
+  height: 400,
+  title: "Labor Market Indicators - Normalized % Change from Jan 2007"
+)
+|> Vl.data_from_values(labor_data)
+|> Vl.mark(:line, tooltip: true, stroke_width: 2)
+|> Vl.encode_field(:x, "date",
+  type: :temporal,
+  title: "Date",
+  axis: [format: "%Y"]
+)
+|> Vl.encode_field(:y, "value",
+  type: :quantitative,
+  title: "% Change from Baseline"
+)
+|> Vl.encode_field(:color, "series",
+  type: :nominal,
+  title: "Indicator"
+)
+```
+
+<!-- livebook:{"offset":5645,"stamp":{"token":"XCP.qcyEnH9ycPLeLrdaBuwUDW2SPKCGC4tRGTtbMEATpmhpXVwzN8tfNWkUM_O7HTBNczXBrnD1e2zC3ftV9_id-kr0f_ujZZFu-B_jwarXB83oBLXUnvCd","version":2}} -->
