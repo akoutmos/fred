@@ -152,9 +152,9 @@ defmodule Fred.MixProject do
     <br>
     --------------------
 
-    [![Hex.pm](https://img.shields.io/hexpm/v/prom_ex?style=for-the-badge)](http://hex.pm/packages/prom_ex)
-    [![Build Status](https://img.shields.io/github/actions/workflow/status/akoutmos/prom_ex/main.yml?label=Build%20Status&style=for-the-badge&branch=master)](https://github.com/akoutmos/prom_ex/actions)
-    [![Coverage Status](https://img.shields.io/coveralls/github/akoutmos/prom_ex/master?style=for-the-badge)](https://coveralls.io/github/akoutmos/prom_ex?branch=master)
+    [![Hex.pm](https://img.shields.io/hexpm/v/fred?style=for-the-badge)](http://hex.pm/packages/fred)
+    [![Build Status](https://img.shields.io/github/actions/workflow/status/akoutmos/fred/main.yml?label=Build%20Status&style=for-the-badge&branch=master)](https://github.com/akoutmos/fred/actions)
+    [![Coverage Status](https://img.shields.io/coveralls/github/akoutmos/fred/master?style=for-the-badge)](https://coveralls.io/github/akoutmos/fred?branch=master)
     [![Support Fred](https://img.shields.io/badge/Support%20Fred-%E2%9D%A4-lightblue?style=for-the-badge)](https://github.com/sponsors/akoutmos)
     """
 

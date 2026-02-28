@@ -49,6 +49,8 @@ a copy of our book:
 - [Configuration](#configuration)
 - [Quick Start](#quick-start)
 - [API Coverage](#api-coverage)
+- [Livebook Notebooks](#livebook-notebooks)
+- [Telemetry](#telemetry)
 
 ## Installation
 
@@ -92,30 +94,29 @@ configuration, you can start your project with `FRED_API_KEY=YOUR_KEY_GOES_HERE 
 like so:
 
 ```elixir
-# Fetch the unemployment rate series metadata
-{:ok, data} = Fred.Series.get("UNRATE")
-series = hd(data["seriess"])
-IO.puts(series["title"])
-#=> "Unemployment Rate"
+iex(1)> ["GDP", "UNRATE", "CPIAUCSL"] |>
+...(1)> Fred.Series.observations_as_data_frame(frequency: :a) |>
+...(1)> Explorer.DataFrame.print(limit: 10, limit_dots: :bottom)
++---------------------------------------------------------------------+
+|             Explorer DataFrame: [rows: 79, columns: 4]              |
++------------+------------------+------------------+------------------+
+|    date    |     CPIAUCSL     |      UNRATE      |       GDP        |
+|   <date>   | <decimal[38, 3]> | <decimal[38, 3]> | <decimal[38, 3]> |
++============+==================+==================+==================+
+| 1947-01-01 | 22.332           | nil              | 249.616          |
+| 1948-01-01 | 24.045           | 3.800            | 274.468          |
+| 1949-01-01 | 23.809           | 6.100            | 272.475          |
+| 1950-01-01 | 24.063           | 5.200            | 299.827          |
+| 1951-01-01 | 25.973           | 3.300            | 346.913          |
+| 1952-01-01 | 26.567           | 3.000            | 367.341          |
+| 1953-01-01 | 26.768           | 2.900            | 389.218          |
+| 1954-01-01 | 26.865           | 5.600            | 390.549          |
+| 1955-01-01 | 26.796           | 4.400            | 425.480          |
+| 1956-01-01 | 27.191           | 4.100            | 449.353          |
+| …          | …                | …                | …                |
++------------+------------------+------------------+------------------+
 
-# Get monthly observations since 2020
-{:ok, data} = Fred.Series.observations("UNRATE",
-  observation_start: "2020-01-01",
-  frequency: "m"
-)
-for obs <- data["observations"] do
-  IO.puts("#{obs["date"]}: #{obs["value"]}%")
-end
-
-# Search for series about GDP
-{:ok, results} = Fred.Series.search("gross domestic product",
-  order_by: "popularity",
-  sort_order: "desc",
-  limit: 5
-)
-for s <- results["seriess"] do
-  IO.puts("#{s["id"]}: #{s["title"]}")
-end
+:ok
 ```
 
 ## API Coverage
@@ -152,21 +153,25 @@ GeoJSON struct conversion.
 
 ## Telemetry
 
-Fred emits [`:telemetry`](https://hexdocs.pm/telemetry) spans for every API request, giving you full observability over latency, error rates, and usage patterns.
+Fred emits [`:telemetry`](https://hexdocs.pm/telemetry) spans for every API request, giving you full
+observability over latency, error rates, and usage patterns. For more information, be sure to check out the
+`Fred.Telemetry` module.
 
 ### Quick Setup — Built-in Logger
 
-The fastest way to see what's happening is to attach the built-in logger handler. Add it to your application's `start/2`:
+The fastest way to see what's happening is to attach the built-in logger handler. Add it to your application's `start/2`
+callback:
 
 ```elixir
 defmodule MyApp.Application do
   use Application
 
   def start(_type, _args) do
+    # Add this line to attach the logger to the telemetry events
     Fred.Telemetry.Logger.attach()
 
     children = [
-      # ...
+      ...
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one)
@@ -174,10 +179,10 @@ defmodule MyApp.Application do
 end
 ```
 
-You'll see log output like:
+With that in place, you should see log output like so whenever you make a call to the Fred API:
 
 ```
-[info] [fred] GET /series/observations — 200 in 142ms (params: %{series_id: "UNRATE", frequency: "m"})
+[info] [fred] GET /series/observations — 200 in 142ms (params: %{series_id: "UNRATE", frequency: :m})
 [info] [fred] GET /series — error in 83ms: (400) Bad Request (params: %{series_id: ""})
 [info] [fred] GET /series/observations — exception in 5012ms: %Req.TransportError{reason: :timeout}
 ```
@@ -193,91 +198,3 @@ Detach when you no longer need it:
 ```elixir
 Fred.Telemetry.Logger.detach()
 ```
-
-### Events
-
-Every request emits a `[:fred, :request]` span with three possible events:
-
-#### `[:fred, :request, :start]`
-
-Emitted when a request begins.
-
-| Measurement    | Type    | Description                 |
-| -------------- | ------- | --------------------------- |
-| `:system_time` | integer | System time in native units |
-
-| Metadata    | Type   | Description                             |
-| ----------- | ------ | --------------------------------------- |
-| `:endpoint` | string | API path, e.g. `"/series/observations"` |
-| `:base_url` | string | Base URL used                           |
-| `:params`   | map    | Query params (API key redacted)         |
-
-#### `[:fred, :request, :stop]`
-
-Emitted when a request completes (HTTP round-trip finished).
-
-| Measurement | Type    | Description                              |
-| ----------- | ------- | ---------------------------------------- |
-| `:duration` | integer | Wall-clock duration in native time units |
-
-| Metadata    | Type              | Description                             |
-| ----------- | ----------------- | --------------------------------------- |
-| `:endpoint` | string            | API path                                |
-| `:base_url` | string            | Base URL used                           |
-| `:params`   | map               | Query params (API key redacted)         |
-| `:status`   | integer \| nil    | HTTP status code                        |
-| `:result`   | `:ok` \| `:error` | Whether the call succeeded              |
-| `:error`    | `%Fred.Error{}`   | Only present when `:result` is `:error` |
-
-#### `[:fred, :request, :exception]`
-
-Emitted when the request raises an unexpected exception.
-
-| Measurement | Type    | Description                  |
-| ----------- | ------- | ---------------------------- |
-| `:duration` | integer | Duration until the exception |
-
-| Metadata      | Type   | Description                    |
-| ------------- | ------ | ------------------------------ |
-| `:endpoint`   | string | API path                       |
-| `:kind`       | atom   | `:throw`, `:error`, or `:exit` |
-| `:reason`     | term   | The exception or thrown value  |
-| `:stacktrace` | list   | The stacktrace                 |
-
-### Custom Handlers
-
-Attach your own handler to any event:
-
-```elixir
-# Track request durations in StatsD / Prometheus / etc.
-:telemetry.attach(
-  "fred-metrics",
-  [:fred, :request, :stop],
-  fn _event, %{duration: duration}, %{endpoint: endpoint}, _config ->
-    ms = System.convert_time_unit(duration, :native, :millisecond)
-    MyApp.Metrics.histogram("fred.request.duration", ms, tags: [endpoint: endpoint])
-  end,
-  nil
-)
-
-# Alert on errors
-:telemetry.attach(
-  "fred-errors",
-  [:fred, :request, :stop],
-  fn _event, _measurements, %{result: :error, endpoint: ep, error: err}, _config ->
-    MyApp.Alerting.notify("FRED API error on #{ep}: #{Exception.message(err)}")
-    _event, _measurements, _metadata, _config -> :ok
-  end,
-  nil
-)
-```
-
-### Security
-
-The API key is **always redacted** from telemetry metadata. The `:params` map in
-all events has the `:api_key` key stripped before emission, so it is safe to log
-or forward to external monitoring systems.
-
-## License
-
-MIT
