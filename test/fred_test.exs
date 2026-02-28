@@ -40,7 +40,7 @@ defmodule Fred.TelemetryTest do
         nil
       )
 
-      metadata = %{endpoint: "/test", base_url: "http://test", params: %{}}
+      metadata = %{url: "http://test/test", params: []}
 
       result =
         Fred.Telemetry.span(metadata, fn ->
@@ -49,10 +49,10 @@ defmodule Fred.TelemetryTest do
 
       assert result == {:ok, %{"data" => "value"}}
 
-      assert_receive {^ref, [:fred, :request, :start], %{system_time: _}, %{endpoint: "/test"}}
+      assert_receive {^ref, [:fred, :request, :start], %{system_time: _}, %{url: "http://test/test"}}
 
       assert_receive {^ref, [:fred, :request, :stop], %{duration: duration},
-                      %{endpoint: "/test", status: 200, result: :ok}}
+                      %{url: "http://test/test", status: 200, result: :ok}}
 
       assert is_integer(duration) and duration >= 0
 
@@ -72,7 +72,7 @@ defmodule Fred.TelemetryTest do
         nil
       )
 
-      metadata = %{endpoint: "/test", base_url: "http://test", params: %{}}
+      metadata = %{url: "http://test/test", params: []}
 
       error = Fred.Error.new(:api_error, "Bad Request", 400)
 
@@ -84,7 +84,7 @@ defmodule Fred.TelemetryTest do
       assert {:error, ^error} = result
 
       assert_receive {^ref, [:fred, :request, :stop], %{duration: _},
-                      %{endpoint: "/test", status: 400, result: :error, error: ^error}}
+                      %{url: "http://test/test", status: 400, result: :error, error: ^error}}
 
       :telemetry.detach("test-span-err-#{inspect(ref)}")
     end
@@ -102,7 +102,7 @@ defmodule Fred.TelemetryTest do
         nil
       )
 
-      metadata = %{endpoint: "/test", base_url: "http://test", params: %{}}
+      metadata = %{url: "http://test/test", params: []}
 
       assert_raise RuntimeError, "boom", fn ->
         Fred.Telemetry.span(metadata, fn ->
@@ -111,7 +111,7 @@ defmodule Fred.TelemetryTest do
       end
 
       assert_receive {^ref, [:fred, :request, :exception], %{duration: _},
-                      %{endpoint: "/test", kind: :error, reason: %RuntimeError{message: "boom"}}}
+                      %{url: "http://test/test", kind: :error, reason: %RuntimeError{message: "boom"}}}
 
       :telemetry.detach("test-span-exc-#{inspect(ref)}")
     end
@@ -146,9 +146,8 @@ defmodule Fred.Telemetry.LoggerTest do
             [:fred, :request, :stop],
             %{duration: System.convert_time_unit(150, :millisecond, :native)},
             %{
-              endpoint: "/series/observations",
-              base_url: "https://api.stlouisfed.org/fred",
-              params: %{series_id: "UNRATE", frequency: "m"},
+              url: "https://api.stlouisfed.org/fred/series/observations",
+              params: [series_id: "UNRATE", frequency: :m],
               status: 200,
               result: :ok
             }
@@ -158,7 +157,7 @@ defmodule Fred.Telemetry.LoggerTest do
           Process.sleep(50)
         end)
 
-      assert log =~ "[fred] GET /series/observations"
+      assert log =~ "[fred] GET /fred/series/observations"
       assert log =~ "200"
       assert log =~ "series_id"
 
@@ -176,9 +175,8 @@ defmodule Fred.Telemetry.LoggerTest do
             [:fred, :request, :stop],
             %{duration: System.convert_time_unit(83, :millisecond, :native)},
             %{
-              endpoint: "/series",
-              base_url: "https://api.stlouisfed.org/fred",
-              params: %{series_id: ""},
+              url: "https://api.stlouisfed.org/fred/series",
+              params: [series_id: ""],
               status: 400,
               result: :error,
               error: error
@@ -188,7 +186,7 @@ defmodule Fred.Telemetry.LoggerTest do
           Process.sleep(50)
         end)
 
-      assert log =~ "[fred] GET /series"
+      assert log =~ "[fred] GET /fred/series"
       assert log =~ "error"
       assert log =~ "Bad Request"
 
@@ -204,9 +202,8 @@ defmodule Fred.Telemetry.LoggerTest do
             [:fred, :request, :exception],
             %{duration: System.convert_time_unit(5000, :millisecond, :native)},
             %{
-              endpoint: "/series/observations",
-              base_url: "https://api.stlouisfed.org/fred",
-              params: %{series_id: "GDP"},
+              url: "https://api.stlouisfed.org/fred/series/observations",
+              params: [series_id: "GDP"],
               kind: :error,
               reason: %RuntimeError{message: "connection reset"},
               stacktrace: []
@@ -216,7 +213,7 @@ defmodule Fred.Telemetry.LoggerTest do
           Process.sleep(50)
         end)
 
-      assert log =~ "[fred] GET /series/observations"
+      assert log =~ "[fred] GET /fred/series/observations"
       assert log =~ "exception"
       assert log =~ "connection reset"
 
@@ -234,9 +231,8 @@ defmodule Fred.Telemetry.LoggerTest do
             [:fred, :request, :stop],
             %{duration: System.convert_time_unit(50, :millisecond, :native)},
             %{
-              endpoint: "/releases",
-              base_url: "https://api.stlouisfed.org/fred",
-              params: %{},
+              url: "https://api.stlouisfed.org/fred/releases",
+              params: [],
               status: 200,
               result: :ok
             }
@@ -245,7 +241,7 @@ defmodule Fred.Telemetry.LoggerTest do
           Process.sleep(50)
         end)
 
-      assert log =~ "[fred] GET /releases"
+      assert log =~ "[fred] GET /fred/releases"
       refute log =~ "params:"
 
       Fred.Telemetry.Logger.detach("test-empty-params")
@@ -260,9 +256,8 @@ defmodule Fred.Telemetry.LoggerTest do
             [:fred, :request, :stop],
             %{duration: System.convert_time_unit(50, :millisecond, :native)},
             %{
-              endpoint: "/series",
-              base_url: "https://api.stlouisfed.org/fred",
-              params: %{series_id: "GDP", file_type: "json"},
+              url: "https://api.stlouisfed.org/fred/series",
+              params: [series_id: "GDP", file_type: "json"],
               status: 200,
               result: :ok
             }

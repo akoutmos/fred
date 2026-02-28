@@ -17,13 +17,13 @@ defmodule Fred.Telemetry.Logger do
   On every completed request (`:stop` event) it logs at the configured level:
 
   ```
-  [fred] GET /series/observations - 200 in 142ms (params: %{series_id: "UNRATE", frequency: :m})
+  [fred] GET /series/observations - 200 in 142ms (params: [series_id: "UNRATE", frequency: :m])
   ```
 
   On errors:
 
   ```
-  [fred] GET /series/observations - error in 83ms: (400) Bad Request (params: %{series_id: ""})
+  [fred] GET /series/observations - error in 83ms: (400) Bad Request (params: [series_id: ""])
   ```
 
   On exceptions (`:exception` event):
@@ -105,7 +105,7 @@ defmodule Fred.Telemetry.Logger do
   def handle_event([:fred, :request, :stop], measurements, metadata, config) do
     duration_ms = System.convert_time_unit(measurements.duration, :native, :millisecond)
     endpoint = metadata.url |> URI.parse() |> Map.fetch!(:path)
-    params = metadata[:params] || %{}
+    params = metadata[:params] || []
     status = metadata[:status]
     result = metadata[:result]
 
@@ -127,7 +127,7 @@ defmodule Fred.Telemetry.Logger do
   def handle_event([:fred, :request, :exception], measurements, metadata, config) do
     duration_ms = System.convert_time_unit(measurements.duration, :native, :millisecond)
     endpoint = metadata.url |> URI.parse() |> Map.fetch!(:path)
-    params = metadata[:params] || %{}
+    params = metadata[:params] || []
     reason = metadata[:reason]
 
     message =
@@ -136,7 +136,7 @@ defmodule Fred.Telemetry.Logger do
     Logger.log(config.level, message)
   end
 
-  defp format_params(params) when map_size(params) == 0, do: ""
+  defp format_params([]), do: ""
 
   defp format_params(params) do
     display =
