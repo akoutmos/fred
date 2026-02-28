@@ -4,41 +4,56 @@ defmodule Fred.Telemetry.Logger do
 
   Attach it in your application's `start/2` callback for quick observability:
 
-      def start(_type, _args) do
-        Fred.Telemetry.Logger.attach()
-        # ...
-      end
+  ```elixir
+  def start(_type, _args) do
+    Fred.Telemetry.Logger.attach()
+
+    # ...
+  end
+  ```
 
   ## Output
 
   On every completed request (`:stop` event) it logs at the configured level:
 
-      [fred] GET /series/observations - 200 in 142ms (params: %{series_id: "UNRATE", frequency: "m"})
+  ```
+  [fred] GET /series/observations - 200 in 142ms (params: %{series_id: "UNRATE", frequency: :m})
+  ```
 
   On errors:
 
-      [fred] GET /series/observations - error in 83ms: (400) Bad Request (params: %{series_id: ""})
+  ```
+  [fred] GET /series/observations - error in 83ms: (400) Bad Request (params: %{series_id: ""})
+  ```
 
   On exceptions (`:exception` event):
 
-      [fred] GET /series/observations - exception in 5012ms: %Req.TransportError{reason: :timeout}
+  ```
+  [fred] GET /series/observations - exception in 5012ms: %Req.TransportError{reason: :timeout}
+  ```
 
   ## Configuration
 
   Pass options to `attach/1` to customize behavior:
 
-      Fred.Telemetry.Logger.attach(
-        level: :info,              # Logger level (default: :info)
-        handler_id: "my-fred-log"  # Unique handler ID (default: "fred-default-logger")
-      )
+  ```
+  Fred.Telemetry.Logger.attach(
+    level: :info,              # Logger level (default: :info)
+    handler_id: "my-fred-log"  # Unique handler ID (default: "fred-default-logger")
+  )
+  ```
 
   ## Detaching
 
   To stop logging, detach by handler ID:
 
-      Fred.Telemetry.Logger.detach()
-      # or with a custom ID:
-      Fred.Telemetry.Logger.detach("my-fred-log")
+  ```
+  Fred.Telemetry.Logger.detach()
+
+  # or with a custom ID:
+
+  Fred.Telemetry.Logger.detach("my-fred-log")
+  ```
   """
 
   require Logger
@@ -89,7 +104,7 @@ defmodule Fred.Telemetry.Logger do
   @doc false
   def handle_event([:fred, :request, :stop], measurements, metadata, config) do
     duration_ms = System.convert_time_unit(measurements.duration, :native, :millisecond)
-    endpoint = metadata.endpoint
+    endpoint = metadata.url |> URI.parse() |> Map.fetch!(:path)
     params = metadata[:params] || %{}
     status = metadata[:status]
     result = metadata[:result]
@@ -111,7 +126,7 @@ defmodule Fred.Telemetry.Logger do
 
   def handle_event([:fred, :request, :exception], measurements, metadata, config) do
     duration_ms = System.convert_time_unit(measurements.duration, :native, :millisecond)
-    endpoint = metadata.endpoint
+    endpoint = metadata.url |> URI.parse() |> Map.fetch!(:path)
     params = metadata[:params] || %{}
     reason = metadata[:reason]
 
@@ -126,7 +141,7 @@ defmodule Fred.Telemetry.Logger do
   defp format_params(params) do
     display =
       params
-      |> Map.drop([:file_type])
+      |> Keyword.drop([:file_type])
       |> inspect(pretty: false)
 
     " (params: #{display})"

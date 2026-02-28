@@ -17,8 +17,7 @@ defmodule Fred.Telemetry do
 
   **Metadata:**
 
-    - `:endpoint` - The FRED API path (e.g. `"/series/observations"`)
-    - `:base_url` - The base URL used for the request
+    - `:url` - The requested URL
     - `:params` - The query parameters map (with `:api_key` redacted)
 
   ### `[:fred, :request, :stop]`
@@ -33,8 +32,7 @@ defmodule Fred.Telemetry do
 
   **Metadata:**
 
-    - `:endpoint` - The FRED API path
-    - `:base_url` - The base URL used
+    - `:url` - The requested URL
     - `:params` - The query parameters map (with `:api_key` redacted)
     - `:status` - HTTP status code (integer) or `nil` if the request never completed
     - `:result` - `:ok` or `:error`
@@ -50,8 +48,7 @@ defmodule Fred.Telemetry do
 
   **Metadata:**
 
-    - `:endpoint` - The FRED API path
-    - `:base_url` - The base URL used
+    - `:url` - The requested URL
     - `:params` - The query parameters map (with `:api_key` redacted)
     - `:kind` - The exception kind (`:throw`, `:error`, `:exit`)
     - `:reason` - The exception or thrown value
@@ -61,45 +58,26 @@ defmodule Fred.Telemetry do
 
   You can attach your own handlers to any of these events:
 
-      :telemetry.attach(
-        "my-fred-handler",
-        [:fred, :request, :stop],
-        &MyApp.handle_fred_event/4,
-        nil
-      )
+  ```elixir
+  :telemetry.attach(
+    "my-fred-handler",
+    [:fred, :request, :stop],
+    &MyApp.handle_fred_event/4,
+    nil
+  )
+  ```
 
-  Or use the built-in logger for quick observability:
+  Or use the built-in logger for quick request observability:
 
-      # In your Application.start/2:
-      Fred.Telemetry.Logger.attach()
-
-  ## Event Names
-
-  Use `events/0` to get the list of all event name prefixes for attaching
-  to both `:start` and `:stop`:
-
-      Fred.Telemetry.events()
-      #=> [[:fred, :request, :start], [:fred, :request, :stop], [:fred, :request, :exception]]
+  ```elixir
+  # In your Application.start/2:
+  Fred.Telemetry.Logger.attach()
+  ```
   """
 
   alias Fred.Client
 
-  @doc """
-  Executes `fun` inside a `:telemetry.span/3` for `[:fred, :request]`.
-
-  This is used internally by `Fred.Client` and `Fred.Maps` and should not
-  normally be called directly.
-
-  ## Parameters
-
-    - `metadata` - A map that must include at least `:endpoint`. Additional
-      keys like `:base_url` and `:params` are recommended.
-    - `fun` - A zero-arity function that performs the request and returns
-      `{:ok, map()}` or `{:error, %Fred.Error{}}`.
-
-  The function's return value is augmented with telemetry metadata and
-  passed through transparently.
-  """
+  @doc false
   @spec span(metadata :: map(), func :: (-> Client.response())) :: Client.response()
   def span(metadata, func) when is_map(metadata) and is_function(func, 0) do
     :telemetry.span([:fred, :request], metadata, fn ->
@@ -115,10 +93,7 @@ defmodule Fred.Telemetry do
     end)
   end
 
-  @doc """
-  Builds the telemetry metadata map for a request making sure to redact
-  the API key from params.
-  """
+  @doc false
   @spec build_metadata(url :: String.t(), params :: keyword()) :: %{:params => Keyword.t(), :url => String.t()}
   def build_metadata(url, params \\ []) do
     %{
