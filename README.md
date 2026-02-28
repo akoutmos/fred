@@ -157,7 +157,7 @@ Fred emits [`:telemetry`](https://hexdocs.pm/telemetry) spans for every API requ
 observability over latency, error rates, and usage patterns. For more information, be sure to check out the
 `Fred.Telemetry` module.
 
-### Quick Setup — Built-in Logger
+### Quick Setup - Built-in Logger
 
 The fastest way to see what's happening is to attach the built-in logger handler. Add it to your application's `start/2`
 callback:
@@ -182,9 +182,9 @@ end
 With that in place, you should see log output like so whenever you make a call to the Fred API:
 
 ```
-[info] [fred] GET /series/observations — 200 in 142ms (params: %{series_id: "UNRATE", frequency: :m})
-[info] [fred] GET /series — error in 83ms: (400) Bad Request (params: %{series_id: ""})
-[info] [fred] GET /series/observations — exception in 5012ms: %Req.TransportError{reason: :timeout}
+[info] [fred] GET /series/observations - 200 in 142ms (params: %{series_id: "UNRATE", frequency: :m})
+[info] [fred] GET /series - error in 83ms: (400) Bad Request (params: %{series_id: ""})
+[info] [fred] GET /series/observations - exception in 5012ms: %Req.TransportError{reason: :timeout}
 ```
 
 Configure the log level or use a custom handler ID:

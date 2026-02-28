@@ -16,9 +16,9 @@ data** with **MapLibre** for geographic visualization. We fetch state-level
 unemployment data from FRED and color US states accordingly.
 
 > **Requirements:**
-> 
-> * A free FRED API key — [register here](https://fred.stlouisfed.org/docs/api/api_key.html)
-> * Livebook with internet access
+>
+> - A free FRED API key - [register here](https://fred.stlouisfed.org/docs/api/api_key.html)
+> - Livebook with internet access
 
 ```elixir
 alias MapLibre, as: Ml
@@ -43,7 +43,7 @@ not standard WGS84 longitude/latitude. They cannot be rendered directly on a
 web map without a dequantization transform that GeoFRED does not document.
 
 For this notebook, we use standard US boundary GeoJSON from public sources for
-map rendering, and **FRED's API for the economic data** — which is what the
+map rendering, and **FRED's API for the economic data** - which is what the
 library excels at.
 
 ## Part 1: Load US States GeoJSON
@@ -71,7 +71,7 @@ us_geojson =
 features = us_geojson["features"]
 IO.puts("Loaded #{length(features)} state features")
 
-# Show what property keys we have — critical for the merge step
+# Show what property keys we have - critical for the merge step
 first_props = hd(features)["properties"]
 IO.puts("Property keys: #{inspect(Map.keys(first_props))}")
 IO.puts("Sample: #{inspect(first_props)}")
@@ -99,7 +99,7 @@ Ml.new(center: {-98.5, 39.8}, zoom: 3)
 
 ## Part 2: Fetch State Unemployment Data from FRED
 
-FRED names state unemployment series as `"{STATE_CODE}UR"` — for example,
+FRED names state unemployment series as `"{STATE_CODE}UR"` - for example,
 `"TXUR"` for Texas, `"CAUR"` for California. Let's fetch the latest value
 for every state.
 
@@ -225,7 +225,7 @@ matched = Enum.count(merged_features, fn f -> f["properties"]["unemployment"] !=
 IO.puts("Matched #{matched} of #{length(merged_features)} features with unemployment data")
 
 if matched == 0 and map_size(state_data) > 0 do
-  # The join key is wrong — let's debug
+  # The join key is wrong - let's debug
   sample_names = us_geojson["features"] |> Enum.take(3) |> Enum.map(&get_in(&1, ["properties", name_key]))
   sample_codes = state_data |> Map.keys() |> Enum.take(3)
   IO.puts("  GeoJSON names: #{inspect(sample_names)}")
@@ -266,7 +266,7 @@ else
   max_val = Enum.max(values)
   mid_val = Float.round((min_val + max_val) / 2, 1)
 
-  IO.puts("Unemployment range: #{min_val}% — #{max_val}% (mid: #{mid_val}%)")
+  IO.puts("Unemployment range: #{min_val}% - #{max_val}% (mid: #{mid_val}%)")
 
   Ml.new(center: {-98.5, 39.8}, zoom: 3.5)
   |> Ml.add_source("unemployment", type: :geojson, data: merged_geojson)
@@ -306,7 +306,7 @@ Blue states have lower unemployment; red states have higher. Hover to highlight.
 ## Part 4: Using Geo Structs with MapLibre
 
 The `geo` library converts GeoJSON maps into native Elixir structs.
-MapLibre's `Ml.add_geo_source/3` accepts these directly — a nice integration
+MapLibre's `Ml.add_geo_source/3` accepts these directly - a nice integration
 point when you're doing geospatial work in Elixir.
 
 ```elixir
@@ -319,7 +319,7 @@ point when you're doing geospatial work in Elixir.
 ```
 
 ```elixir
-# Fred.Geo provides the same decode — useful when working with
+# Fred.Geo provides the same decode - useful when working with
 # any GeoJSON map in the FRED context:
 sample_geometry = %{
   "type" => "Polygon",
@@ -368,7 +368,7 @@ if texas do
     paint: [line_color: "#e63946", line_width: 2]
   )
 else
-  IO.puts("Texas not found — property key may differ")
+  IO.puts("Texas not found - property key may differ")
   IO.puts("First feature properties: #{inspect(hd(geo_features).properties)}")
 end
 ```
@@ -437,7 +437,7 @@ The response structure varies, but the data can be extracted and merged
 into GeoJSON just like we did with the per-state series above. The advantage
 of `regional_data` is a single API call vs. 51 individual calls.
 
-## Part 6: Per Capita Income — A Second Choropleth
+## Part 6: Per Capita Income - A Second Choropleth
 
 Let's build another choropleth with a different indicator. FRED has
 **per capita personal income** data per state, with series IDs like
@@ -503,7 +503,7 @@ else
   inc_max = Enum.max(income_values)
   inc_mid = Float.round((inc_min + inc_max) / 2, 0)
 
-  IO.puts("Income range: $#{trunc(inc_min)} — $#{trunc(inc_max)}")
+  IO.puts("Income range: $#{trunc(inc_min)} - $#{trunc(inc_max)}")
 
   Ml.new(center: {-98.5, 39.8}, zoom: 3.5)
   |> Ml.add_source("income", type: :geojson, data: income_geojson)
@@ -548,7 +548,7 @@ This notebook demonstrated:
 2. **FRED data retrieval** for state-level unemployment and income via `Fred.Series`
 3. **Data-driven choropleths** by merging FRED values into GeoJSON properties
    and using MapLibre `interpolate` expressions
-4. **Geo struct integration** — decoding GeoJSON with `Fred.Geo` / `Geo.JSON`,
+4. **Geo struct integration** - decoding GeoJSON with `Fred.Geo` / `Geo.JSON`,
    rendering individual or grouped geometries via `Ml.add_geo_source/3`
 5. **`Fred.Maps.regional_data/1`** for fetching economic data by region in a
    single API call

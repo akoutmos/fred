@@ -28,7 +28,7 @@ defmodule Fetch do
     |> Enum.reject(fn obs -> obs["value"] == "." end)
     |> Enum.map(fn obs ->
       {value, ""} = Float.parse(obs["value"])
-      
+
       %{
         "date" => obs["date"],
         "value" => value
@@ -57,7 +57,7 @@ cpi_level =
 IO.puts("CPI observations: #{length(cpi_level)}")
 IO.puts("Latest: #{List.last(cpi_level)["date"]} → #{List.last(cpi_level)["value"]}")
 
-Vl.new(width: 700, height: 350, title: "Consumer Price Index — Level (1990–Present)")
+Vl.new(width: 700, height: 350, title: "Consumer Price Index - Level (1990–Present)")
 |> Vl.data_from_values(cpi_level)
 |> Vl.mark(:line, tooltip: true, color: "#dc2626", stroke_width: 1.5)
 |> Vl.encode_field(:x, "date", type: :temporal, title: "Date", axis: [format: "%Y"])
@@ -70,7 +70,7 @@ Vl.new(width: 700, height: 350, title: "Consumer Price Index — Level (1990–P
 
 ## Year-over-Year Inflation Rate
 
-The index level isn't intuitive — what people care about is **how fast prices
+The index level isn't intuitive - what people care about is **how fast prices
 are rising**. FRED can compute the year-over-year percent change for us using
 `units: "pc1"`.
 
@@ -82,7 +82,7 @@ cpi_yoy =
     units: "pc1"
   )
 
-Vl.new(width: 700, height: 400, title: "CPI Inflation Rate — Year-over-Year % Change")
+Vl.new(width: 700, height: 400, title: "CPI Inflation Rate - Year-over-Year % Change")
 |> Vl.data_from_values(cpi_yoy)
 |> Vl.layers([
   Vl.new()
@@ -266,7 +266,7 @@ IO.puts("Category observations: #{length(category_data)}")
 Vl.new(
   width: 700,
   height: 400,
-  title: "CPI by Category — Year-over-Year % Change (2018–Present)"
+  title: "CPI by Category - Year-over-Year % Change (2018–Present)"
 )
 |> Vl.data_from_values(category_data)
 |> Vl.mark(:line, tooltip: true, stroke_width: 2)
@@ -312,7 +312,7 @@ month_order = ~w(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec)
 Vl.new(
   width: 700,
   height: 300,
-  title: "Monthly CPI Change — Heatmap"
+  title: "Monthly CPI Change - Heatmap"
 )
 |> Vl.data_from_values(cpi_mom)
 |> Vl.mark(:rect, tooltip: true)
@@ -386,7 +386,7 @@ Vl.new(
 ```
 
 You can see the Fed's tightening and easing cycles closely track inflation
-movements — with the notable lag during the 2021–2023 episode when inflation
+movements - with the notable lag during the 2021–2023 episode when inflation
 surged before rate hikes began.
 
 <!-- livebook:{"offset":10032,"stamp":{"token":"XCP.5oDaVUTvVxcWFT_AuaUjq8DrNcIqz8Dq_LpaOoqyTE7J0qbvj4MH51pkViX0YmAGphIOPyel5qVHc-sHv4rCy8MBgrQLI5HJpR_IGjqKjlg6NlxnCMha","version":2}} -->

@@ -41,7 +41,7 @@ defmodule FredHelper do
     |> Enum.reject(fn obs -> obs["value"] == "." end)
     |> Enum.map(fn obs ->
       {value, ""} = Float.parse(obs["value"])
-      
+
       %{
         "date" => obs["date"],
         "value" => value,
@@ -132,7 +132,7 @@ gdp_data =
     Map.put(obs, "direction", if(value >= 0, do: "Growth", else: "Contraction"))
   end)
 
-Vl.new(width: 700, height: 400, title: "Real GDP — Quarter-over-Quarter % Change")
+Vl.new(width: 700, height: 400, title: "Real GDP - Quarter-over-Quarter % Change")
 |> Vl.data_from_values(gdp_data)
 |> Vl.mark(:bar, tooltip: true)
 |> Vl.encode_field(:x, "date",
@@ -155,9 +155,9 @@ Vl.new(width: 700, height: 400, title: "Real GDP — Quarter-over-Quarter % Chan
 
 Let's overlay three labor market indicators:
 
-* **UNRATE** — Unemployment Rate
-* **PAYEMS** — All Employees, Total Nonfarm (thousands)
-* **CIVPART** — Civilian Labor Force Participation Rate
+- **UNRATE** - Unemployment Rate
+- **PAYEMS** - All Employees, Total Nonfarm (thousands)
+- **CIVPART** - Civilian Labor Force Participation Rate
 
 Since these have very different scales, we'll **normalize** them to show
 percent change from a common start date.
@@ -195,7 +195,7 @@ IO.puts("Total observations: #{length(labor_data)}")
 Vl.new(
   width: 700,
   height: 400,
-  title: "Labor Market Indicators — Normalized % Change from Jan 2007"
+  title: "Labor Market Indicators - Normalized % Change from Jan 2007"
 )
 |> Vl.data_from_values(labor_data)
 |> Vl.mark(:line, tooltip: true, stroke_width: 2)

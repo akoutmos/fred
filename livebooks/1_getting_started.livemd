@@ -2,7 +2,7 @@
 
 ```elixir
 Mix.install([
-  {:fred, path: Path.join(__DIR__, "..")},
+  {:fred, "~> 0.1"},
   {:vega_lite, "~> 0.1"},
   {:kino_vega_lite, "~> 0.1"}
 ])
@@ -10,90 +10,109 @@ Mix.install([
 
 ## Setup
 
-Install dependencies. This notebook uses the `fred` library for API access and
-`VegaLite` for charting.
+To being, start by installing the notebook dependencies. This notebook uses the `fred` library for
+API access and `VegaLite` for charting.
 
-> **Before you begin:** You'll need a free FRED API key.
-> Register at https://fred.stlouisfed.org/docs/api/api_key.html
+You'll need a FRED API key before making any API calls. You can get your free API key from the
+[FRED API website](https://fred.stlouisfed.org/docs/api/api_key.html). After you have a FRED API
+key, add it to your Livebook secrets undet the key `FRED_API_KEY` so the the downstream code can
+access it.
+
+With your API key in place, you can set the application configuration for the Fred library and
+attach the default logger.
 
 ```elixir
 alias VegaLite, as: Vl
-```
 
-Set your API key. Replace the placeholder below or set the `FRED_API_KEY`
-environment variable before launching Livebook.
-
-```elixir
-# Option 1: paste your key directly
-# Application.put_env(:fred, :api_key, "your_key_here")
-
-# Option 2: read from environment (recommended)
+# API key pulled from Livebook secrets
 Application.put_env(:fred, :api_key, System.fetch_env!("LB_FRED_API_KEY"))
-```
 
-Optionally, attach the built-in telemetry logger so you can see each HTTP
-request in the Livebook output pane.
-
-```elixir
+# Attach the default logger to keep an eye on requests
 Fred.Telemetry.Logger.attach(level: :info)
 ```
 
+With that you are ready to rock and roll! Let's now take a look at some simple endpoints to see
+what data we can extract from FRED..
+
 ## Exploring a Series
 
-Let's start by looking up metadata for the **Unemployment Rate** series (`UNRATE`).
+We'll begin by looking up metadata for the *Unemployment Rate* series (which has the key
+`UNRATE`). The meta data will include things like the frequency of the series, the human readable
+name, and the units of the series.
 
 ```elixir
-{:ok, data} = Fred.Series.get("UNRATE")
+# We use the `Fred.Series.get/1` function to get metadata about the `UNRATE` series and pluck
+# the head of the response list.
+{:ok, %{"seriess" => [data | _]}} = 
+  Fred.Series.get("UNRATE")
 
-series = hd(data["seriess"])
-
+# Print out some of the metadata from the series
 IO.puts("""
-Title:       #{series["title"]}
-Frequency:   #{series["frequency"]}
-Units:       #{series["units"]}
-Seasonal:    #{series["seasonal_adjustment"]}
-Last Update: #{series["last_updated"]}
+Title:       #{data["title"]}
+Frequency:   #{data["frequency"]}
+Units:       #{data["units"]}
+Seasonal:    #{data["seasonal_adjustment"]}
+Last Update: #{data["last_updated"]}
 """)
 
-series
+:ok
 ```
 
 ## Fetching Observations
 
-Now let's pull the actual unemployment rate data from 2000 onward.
+Now let's pull the actual unemployment rate data from 2000-01-01 onward. We'll work with the
+raw response data from the FRED API and massage it into a format that works with VegaLite.
 
 ```elixir
-{:ok, obs_data} =
+# Get the observation data for the `UNRATE` series after (and including) 2000-01-01
+observation_start = ~D[2000-01-01]
+
+{:ok, %{"observations" => observations}} =
   Fred.Series.observations("UNRATE",
-    observation_start: "2000-01-01",
-    frequency: "m"
+    observation_start: observation_start,
+    frequency: :m
   )
 
-# Parse into a list of maps with proper types for plotting
-observations =
-  obs_data["observations"]
-  |> Enum.reject(fn obs -> obs["value"] == "." end)
-  |> Enum.map(fn obs ->
-    %{
-      "date" => obs["date"],
-      "value" => String.to_float(obs["value"])
-    }
-  end)
+# Parse into a list of maps, extract the necessary data and cast the float values. FRED returns
+# "." for dates without any data so we'll ignore those.
+formatted_observations =
+  observations
+  |> Enum.reduce([], fn
+    %{"value" => "."}, acc ->
+      acc
 
-IO.puts("Fetched #{length(observations)} observations")
-IO.puts("Date range: #{List.first(observations)["date"]} to #{List.last(observations)["date"]}")
+    %{"date" => date, "value" => value}, acc ->
+      [%{date: Date.from_iso8601!(date), value: String.to_float(value)} | acc]
+  end)
+  |> Enum.sort_by(
+    fn %{date: date} ->
+      date
+    end,
+    Date
+  )
+
+# Get the min and max Dates for the series
+{%{date: min_date}, %{date: max_date}} = Enum.min_max_by(formatted_observations, &(&1.date), Date)
+
+# Print some information about the series
+IO.puts("Fetched #{length(formatted_observations)} observations")
+IO.puts("Date range: #{min_date} to #{max_date}")
 
 # Preview the first few rows
-Enum.take(observations, 5)
+Enum.take(formatted_observations, 5)
 ```
+
+With the `UNRATE` data formatted nicely inside of the `observations` variable, let's now see how
+we can plot this data using the `VegaLite` library inside of Livebook.
 
 ## Plotting with VegaLite
 
-A simple line chart of the unemployment rate over time.
+With our unemployment data now formatted as a list of maps with the date and value, we
+can now plot the simple time series data using a `VegaLite` line chart:
 
 ```elixir
-Vl.new(width: 700, height: 400, title: "U.S. Unemployment Rate (2000–Present)")
-|> Vl.data_from_values(observations)
+Vl.new(width: 750, height: 400, title: "U.S. Unemployment Rate (#{min_date} - #{max_date})")
+|> Vl.data_from_values(formatted_observations)
 |> Vl.mark(:line, tooltip: true, color: "#2563eb")
 |> Vl.encode_field(:x, "date",
   type: :temporal,
@@ -107,63 +126,143 @@ Vl.new(width: 700, height: 400, title: "U.S. Unemployment Rate (2000–Present)"
 )
 ```
 
-## Adding Context with an Area Chart
+## Adding Recession Shading
 
-Let's shade the area under the curve and highlight recession-era spikes.
+FRED provides the National Bureau of Economic Research (NBER for short) recession indicator as
+series `"USREC"`. The data value is a `1` during a recession and `0` otherwise. We'll convert this
+time series data set into a list of tuples to mark the beginning and end of recession periods
+which we'll then use to overlay on top of the unemployment data in `VegaLite`.
 
 ```elixir
-Vl.new(width: 700, height: 400, title: "U.S. Unemployment Rate — Area View")
-|> Vl.data_from_values(observations)
-|> Vl.mark(:area,
-  tooltip: true,
-  color: "#2563eb",
-  opacity: 0.3,
-  line: [color: "#2563eb"]
-)
-|> Vl.encode_field(:x, "date",
-  type: :temporal,
-  title: "Date",
-  axis: [format: "%Y"]
-)
-|> Vl.encode_field(:y, "value",
-  type: :quantitative,
-  title: "Unemployment Rate (%)",
-  scale: [zero: true]
-)
+# Fetch the recession indicator for the same date range
+{:ok, %{"observations" => reccession_data}} =
+  Fred.Series.observations("USREC",
+    observation_start: observation_start,
+    frequency: :m
+  )
+
+# Convert monthly 0/1 flags into recession periods: [{start, end}, ...]
+recession_periods =
+  reccession_data
+  |> Enum.reject(fn %{"value" => value} ->
+    value == "."
+  end)
+  |> Enum.chunk_while(
+    nil,
+    fn
+      %{"value" => "1", "date" => date}, nil ->
+        {:cont, date}
+
+      %{"value" => "1"}, start_date ->
+        {:cont, start_date}
+
+      %{"value" => "0"}, nil ->
+        {:cont, nil}
+
+      %{"value" => "0", "date" => date}, start_date ->
+        {:cont, %{start: Date.from_iso8601!(start_date), end: Date.from_iso8601!(date)}, nil}
+    end,
+    fn
+      nil -> 
+        {:cont, nil}
+        
+      start_date -> 
+        {:cont, %{start: start_date, end: Date.utc_today()}, nil}
+    end
+  )
+```
+
+With the recession date ranges, aggregated, we can now create a new `VegaLite` chart using the
+`VegaLite.layers/2` function in order to overlay the recession ranges along with the unemployment
+data.
+
+```elixir
+# Layer recession bands behind the unemployment area chart
+Vl.new(width: 750, height: 400, title: "U.S. Unemployment Rate with Recession Shading")
+|> Vl.layers([
+  # Gray recession bands
+  Vl.new()
+  |> Vl.data_from_values(recession_periods)
+  |> Vl.mark(:rect, color: "#3f3f46", opacity: 0.25)
+  |> Vl.encode_field(:x, "start", type: :temporal)
+  |> Vl.encode_field(:x2, "end", type: :temporal),
+
+  # Unemployment area
+  Vl.new()
+  |> Vl.data_from_values(formatted_observations)
+  |> Vl.mark(:area,
+    tooltip: true,
+    color: "#2563eb",
+    opacity: 0.5,
+    line: [color: "#2563eb"]
+  )
+  |> Vl.encode_field(:x, "date",
+    type: :temporal,
+    title: "Date",
+    axis: [format: "%Y"]
+  )
+  |> Vl.encode_field(:y, "value",
+    type: :quantitative,
+    title: "Unemployment Rate (%)",
+    scale: [zero: true]
+  )
+])
 ```
 
 ## Using FRED's Built-in Transformations
 
-FRED can compute percent changes server-side via the `units` parameter.
-Let's look at **month-over-month percent change** in the unemployment rate.
+The FRED API can also compute percent changes and format the response payload accordingly. You
+can do this via the `:units` option. Let's look at *month-over-month percent change* in the unemployment rate.
 
 ```elixir
-{:ok, pch_data} =
+{:ok, %{"observations" => pch_observations}} =
   Fred.Series.observations("UNRATE",
-    observation_start: "2000-01-01",
-    frequency: "m",
-    units: "pch"
+    observation_start: observation_start,
+    frequency: :m,
+    units: :pch
   )
 
-pch_observations =
-  pch_data["observations"]
-  |> Enum.reject(fn obs -> obs["value"] == "." end)
-  |> Enum.map(fn obs ->
-    value = String.to_float(obs["value"])
+formatted_pch_observations =
+  pch_observations
+  |> Enum.reduce([], fn
+    %{"value" => "."}, acc ->
+      acc
 
-    %{
-      "date" => obs["date"],
-      "value" => value,
-      "direction" => if(value >= 0, do: "Increase", else: "Decrease")
-    }
+    %{"date" => date, "value" => value}, acc ->
+      value = String.to_float(value)
+      
+      data = %{
+        date: Date.from_iso8601!(date),
+        value: value,
+        direction: if(value >= 0, do: "Increase", else: "Decrease")
+      }
+
+      [data | acc]
   end)
+  |> Enum.sort_by(
+    fn %{date: date} ->
+      date
+    end,
+    Date
+  )
+```
 
-Vl.new(
-  width: 700,
-  height: 400,
-  title: "Unemployment Rate — Month-over-Month % Change"
-)
-|> Vl.data_from_values(pch_observations)
+With our formatted percent change data, we can once again lean on the `VegaLite.layers/2` function
+in order to overlay the recession periods along with the unemployment rate percent change.
+
+```elixir
+Vl.new(width: 750, height: 400, title: "Unemployment Rate - Month-over-Month % Change")
+|> Vl.layers([
+  # Gray recession bands
+  Vl.new()
+  |> Vl.data_from_values(recession_periods)
+  |> Vl.mark(:rect, color: "#3f3f46", opacity: 0.25)
+  |> Vl.encode_field(:x, "start", type: :temporal)
+  |> Vl.encode_field(:x2, "end", type: :temporal),
+
+  # Unemployment area
+  Vl.new()
+|> Vl.data_from_values(formatted_pch_observations)
 |> Vl.mark(:bar, tooltip: true)
 |> Vl.encode_field(:x, "date",
   type: :temporal,
@@ -179,22 +278,23 @@ Vl.new(
   scale: [domain: ["Increase", "Decrease"], range: ["#ef4444", "#22c55e"]],
   legend: nil
 )
+])
 ```
 
-## Searching for Series
+## Searching for Observation Series
 
-You can search FRED's full catalog. Let's find the most popular series
-related to "inflation".
+In addition to fetching data for known observation series, you can search FRED's full catalog via
+full text search. Let's find the most popular series related to "inflation".
 
 ```elixir
-{:ok, search_results} =
+{:ok, %{"seriess" => search_results}} =
   Fred.Series.search("inflation",
-    order_by: "popularity",
-    sort_order: "desc",
-    limit: 10
+    order_by: :popularity,
+    sort_order: :desc,
+    limit: 5
   )
 
-search_results["seriess"]
+search_results
 |> Enum.map(fn s ->
   %{
     id: s["id"],
@@ -205,19 +305,4 @@ search_results["seriess"]
 end)
 ```
 
-## Browsing Categories
-
-FRED organizes series into a category tree. Let's look at the top-level
-categories (children of the root category `0`).
-
-```elixir
-{:ok, cats} = Fred.Categories.children(0)
-
-cats["categories"]
-|> Enum.map(fn c -> %{id: c["id"], name: c["name"]} end)
-```
-
-That's the basics! Head to the next notebook to see how to compare multiple
-economic indicators on a single chart.
-
-<!-- livebook:{"offset":5062,"stamp":{"token":"XCP.RX-EppxMzH63RAJtGayoXQwndjCdXd6vsA1yVvt0oL_END1E8e5IT0xCkdWn0BnSuRNAKnocIBjtFgEsMu5gZb_LgZ0Vf0tUIsQBtIp8KPp-0GB3xz0D","version":2}} -->
+<!-- livebook:{"offset":8662,"stamp":{"token":"XCP.CpET2vC2DgROvTdHaKpWPXm4MOmPB8gTSEpQdzYeXoAX9u-4dx2YiTHsrMSiioohwFjfXlWG1_cZ_jeZAQdoO867lHvBZgwmMGc5Y-3rbh4A7DwGi6-j","version":2}} -->
