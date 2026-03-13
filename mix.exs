@@ -45,7 +45,7 @@ defmodule Fred.MixProject do
   defp package do
     [
       name: "fred",
-      files: ~w(lib mix.exs README.md LICENSE CHANGELOG.md VERSION),
+      files: ~w(lib livebooks mix.exs README.md LICENSE CHANGELOG.md VERSION),
       licenses: ["MIT"],
       maintainers: ["Alex Koutmos"],
       links: %{
