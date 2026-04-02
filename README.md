@@ -31,7 +31,7 @@
 
 FRED® (Federal Reserve Economic Data) provides access to over 800,000 economic time series from 100+ sources including the Bureau of Labor
 Statistics, the Bureau of Economic Analysis, and the Federal Reserve Board. This library was written to allow readers of
-[Financial Analytics Using Elixir](https://www.financialelixir.dev/) to collect, analyze and visualize economic data from
+[Elixir For Finance](https://www.financialelixir.dev/) to collect, analyze and visualize economic data from
 Fred, but it is a complete Fred API client and can be used outside the context of the book.
 
 To learn how you can analyze and visualize the financial markets using Livebook, Explorer, Scholar and Nx, be sure to pick up
@@ -59,7 +59,7 @@ Add `fred` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:fred, "~> 0.3.0"}
+    {:fred, "~> 0.4.0"}
   ]
 end
 ```

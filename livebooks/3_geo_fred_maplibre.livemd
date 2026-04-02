@@ -2,11 +2,25 @@
 
 ```elixir
 Mix.install([
-  {:fred, "~> 0.0.1"},
+  {:fred, "~> 0.3.0"},
   {:kino_maplibre, "~> 0.1.13"},
   {:kino, "~> 0.14"},
 ])
 ```
+
+## Introduction
+
+FRED® (Federal Reserve Economic Data) provides access to over 800,000 economic time series from 100+ sources including the Bureau of Labor Statistics, the Bureau of Economic Analysis, and the Federal Reserve Board. This library was written to allow readers of [Elixir For Finance](https://www.financialelixir.dev/) to collect, analyze and visualize economic data from Fred, but it is a complete Fred API client and can be used outside the context of the book.
+
+To learn how you can analyze and visualize the financial markets using Livebook, Explorer, Scholar and Nx, be sure to pick up a copy of our book:
+
+<a target="_blank" href="https://elixirpatterns.dev">
+  <img
+    src="https://financial-analytics-elixir-landing.vercel.app/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fcover.8c040087.png&w=1080&q=75"
+    alt="Elixir For Finance Book Cover"
+    width="350"
+  />
+</a>
 
 ## Setup
 
@@ -22,7 +36,6 @@ With your API key in place, you can set the application configuration for the Fr
 attach the default logger.
 
 ```elixir
-alias VegaLite, as: Vl
 alias MapLibre, as: Ml
 
 # API key pulled from Livebook secrets
