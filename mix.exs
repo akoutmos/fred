@@ -19,19 +19,8 @@ defmodule Fred.MixProject do
         plt_file: {:no_warn, "priv/plts/project.plt"}
       ],
       test_coverage: [
-        ignore_modules: [Fred.Utils],
-        summary: [
-          threshold: 80
-        ]
+        tool: ExCoveralls
       ]
-      # test_coverage: [tool: ExCoveralls],
-      # preferred_cli_env: [
-      #   coveralls: :test,
-      #   "coveralls.detail": :test,
-      #   "coveralls.post": :test,
-      #   "coveralls.html": :test,
-      #   "coveralls.cobertura": :test
-      # ]
     ]
   end
 
@@ -39,6 +28,18 @@ defmodule Fred.MixProject do
   def application do
     [
       extra_applications: [:logger]
+    ]
+  end
+
+  def cli do
+    [
+      preferred_envs: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test,
+        "coveralls.cobertura": :test
+      ]
     ]
   end
 
