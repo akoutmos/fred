@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-02
+
+### Changed
+
+- Fixed README for new Hex README rendering
+
 ## [0.2.0] - 2026-04-02
 
 ### Changed
