@@ -38,7 +38,7 @@ To learn how you can analyze and visualize the financial markets using Livebook,
 a copy of our book:
 
 <p align="center">
-  <a href="https://financialanalytics.dev">
+  <a href="https://www.financialelixir.dev/">
     <img width="50%" src="guides/images/book_cover.png" alt="Financial Analytics Using Elixir book cover">
   </a>
 </p>
