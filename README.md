@@ -90,10 +90,10 @@ to support this library and the many others that I maintain. You'll also gain kn
 that took me years to attain!
 
 <p align="center">
-  <a href="https://financialelixir.dev"><img src="images/elixir_for_finance.png" width="180" /></a>
-  <a href="https://elixirpatterns.dev"><img src="images/elixir_patterns.png" width="180" /></a>
-  <a href="https://programmingnerves.dev"><img src="images/programming_nerves.png" width="180" /></a>
-  <a href="https://pragprog.com/titles/passweather/build-a-weather-station-with-elixir-and-nerves"><img
+  <a target="_blank" href="https://financialelixir.dev"><img src="images/elixir_for_finance.png" width="180" /></a>
+  <a target="_blank" href="https://elixirpatterns.dev"><img src="images/elixir_patterns.png" width="180" /></a>
+  <a target="_blank" href="https://programmingnerves.dev"><img src="images/programming_nerves.png" width="180" /></a>
+  <a target="_blank" href="https://pragprog.com/titles/passweather/build-a-weather-station-with-elixir-and-nerves"><img
   src="images/weather_station.png" width="180" /></a>
 </p>
 
