@@ -47,6 +47,7 @@ a copy of our book:
 
 - [Installation](#installation)
 - [Configuration](#configuration)
+- [Level Up You Elixir Skills](#level-up-your-elixir-skills)
 - [Quick Start](#quick-start)
 - [API Coverage](#api-coverage)
 - [Livebook Notebooks](#livebook-notebooks)
@@ -79,7 +80,15 @@ Or use an environment variable:
 config :fred, api_key: System.fetch_env!("FRED_API_KEY")
 ```
 
-### Level Up Your Elixir Skills!
+### Optional Settings
+
+```elixir
+config :fred,
+  api_key: System.fetch_env!("FRED_API_KEY"),
+  recv_timeout: 30_000 # HTTP client timeout
+```
+
+## Level Up Your Elixir Skills!
 
 Everything I have learned building production Elixir systems ends up in one of two
 places: an open source library on [Hex](https://hex.pm/users/akoutmos), or a book.
@@ -112,14 +121,6 @@ I doubt you'll find a more fun and enjoyable hardware book out there!
 **[Build a Weather Station with Elixir and Nerves](https://pragprog.com/titles/passweather/build-a-weather-station-with-elixir-and-nerves/)** —
 A project-based introduction to Nerves. Wire up the sensors, capture readings and
 then pipe the data into a time series database that can be visualized with Grafana.
-
-### Optional Settings
-
-```elixir
-config :fred,
-  api_key: System.fetch_env!("FRED_API_KEY"),
-  recv_timeout: 30_000 # HTTP client timeout
-```
 
 ## Quick Start
 
