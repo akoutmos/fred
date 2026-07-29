@@ -81,15 +81,34 @@ config :fred, api_key: System.fetch_env!("FRED_API_KEY")
 
 ### Level Up Your Elixir Skills!
 
-| Elixir For Finance                                                                       | Elixir Patterns                                                              |
-| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| [![Elixir For Finance](/images/elixir_for_finance.png)](https://www.financialelixir.dev) | [![Elixir Patterns](images/elixir_patterns.png)](https://elixirpatterns.dev) |
-{: .fixed-table}
+Everything I have learned building production Elixir systems ends up in one of two
+places: an open source library on [Hex](https://hex.pm/users/akoutmos), or a book. 
+The libraries are free and will stay that way. The books are what let me keep writing them.
 
-| Programming Nerves                                                                          | Build a Weather Station with Elixir and Nerves                                                                                                                           |
-| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [![Programming Nerves](/images/programming_nerves.png)](https://www.programmingnerves.dev/) | [![Build a Weather Station with Elixir and Nerves](images/weather_station.png)](https://pragprog.com/titles/passweather/build-a-weather-station-with-elixir-and-nerves/) |
-{: .fixed-table}
+If this library has been useful to you, picking up one of my books is the best way
+to support this library and the many others that I maintain. You'll also gain knowledge
+that took me years to attain!
+
+<img src="images/elixir_for_finance.png" width="180" />
+<img src="images/elixir_patterns.png" width="180" />
+<img src="images/programming_nerves.png" width="180" />
+<img src="images/weather_station.png" width="180" />
+
+**[Elixir For Finance](https://www.financialelixir.dev)** — Learn how to navigate markets
+and trading without leaving the BEAM. Livebook for exploration, Explorer for dataframes, 
+VegaLite for visualizations. This book goes through it all!
+
+**[Elixir Patterns](https://elixirpatterns.dev)** — The essential BEAM handbook
+for the busy developer. The patterns and mental models covered in this book teach you
+how to build scalable systems that can handle whatever production throw at them.
+
+**[Programming Nerves](https://www.programmingnerves.dev/)** — The best place to start
+if you are looking to get your own hardware projects up and running with Elixir and Nerves.
+I doubt you'll find a more fun and enjoyable hardware book out there!
+
+**[Build a Weather Station with Elixir and Nerves](https://pragprog.com/titles/passweather/build-a-weather-station-with-elixir-and-nerves/)** —
+A project-based introduction to Nerves. Wire up the sensors, capture readings and 
+then pipe the data into a time series database that can be visualized with Grafana.
 
 ### Optional Settings
 
