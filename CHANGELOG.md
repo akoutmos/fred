@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-29
+
+### Changed
+
+- Updated Explorer version
+- Added option to `Fred.Series.observations_as_data_frame/2` where you can provide a map to rename columns in the output
+  DataFrame.
+
 ## [0.4.0] - 2026-04-02
 
 ### Changed

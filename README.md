@@ -1,6 +1,6 @@
 <!--START-->
 <p align="center">
-  <img align="center" width="50%" src="guides/images/logo.png" alt="Fred Logo">
+  <img align="center" width="50%" src="images/logo.png" alt="Fred Logo">
 </p>
 
 <p align="center">
@@ -39,7 +39,7 @@ a copy of our book:
 
 <p align="center">
   <a href="https://www.financialelixir.dev/">
-    <img width="50%" src="guides/images/book_cover.png" alt="Financial Analytics Using Elixir book cover">
+    <img width="50%" src="images/elixir_for_finance.png" alt="Financial Analytics Using Elixir book cover">
   </a>
 </p>
 
@@ -59,7 +59,7 @@ Add `fred` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:fred, "~> 0.4.0"}
+    {:fred, "~> 0.5.0"}
   ]
 end
 ```
@@ -79,12 +79,24 @@ Or use an environment variable:
 config :fred, api_key: System.fetch_env!("FRED_API_KEY")
 ```
 
+### Level Up Your Elixir Skills!
+
+| Elixir For Finance                                                                       | Elixir Patterns                                                              |
+| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| [![Elixir For Finance](/images/elixir_for_finance.png)](https://www.financialelixir.dev) | [![Elixir Patterns](images/elixir_patterns.png)](https://elixirpatterns.dev) |
+{: .fixed-table}
+
+| Programming Nerves                                                                          | Build a Weather Station with Elixir and Nerves                                                                                                                           |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [![Programming Nerves](/images/programming_nerves.png)](https://www.programmingnerves.dev/) | [![Build a Weather Station with Elixir and Nerves](images/weather_station.png)](https://pragprog.com/titles/passweather/build-a-weather-station-with-elixir-and-nerves/) |
+{: .fixed-table}
+
 ### Optional Settings
 
 ```elixir
 config :fred,
   api_key: System.fetch_env!("FRED_API_KEY"),
-  recv_timeout: 30_000                    # HTTP client timeout
+  recv_timeout: 30_000 # HTTP client timeout
 ```
 
 ## Quick Start

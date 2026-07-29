@@ -46,7 +46,7 @@ defmodule Fred.MixProject do
   defp package do
     [
       name: "fred",
-      files: ~w(lib livebooks guides mix.exs README.md LICENSE CHANGELOG.md VERSION),
+      files: ~w(lib livebooks images mix.exs README.md LICENSE CHANGELOG.md VERSION),
       licenses: ["MIT"],
       maintainers: ["Alex Koutmos"],
       links: %{
@@ -69,7 +69,7 @@ defmodule Fred.MixProject do
     [
       main: "readme",
       source_ref: "master",
-      logo: "guides/images/logo.png",
+      logo: "images/logo.png",
       groups_for_modules: [
         "Data API Modules": [
           Fred.Categories,
@@ -90,8 +90,36 @@ defmodule Fred.MixProject do
       groups_for_extras: [
         General: ["README.md", "CHANGELOG.md"],
         Livebooks: Path.wildcard("livebooks/*.livemd")
-      ]
+      ],
+      before_closing_head_tag: &before_closing_head_tag/1
     ]
+  end
+
+  defp before_closing_head_tag(:html) do
+    """
+    <style>
+      table {
+        table-layout: fixed;
+        width: 100%;
+        height: auto;
+      }
+
+      table td {
+        vertical-align: top;
+      }
+
+      table td img {
+        display: block;
+        width: 100%;
+        height: 420px;
+        object-fit: contain;
+      }
+    </style>
+    """
+  end
+
+  defp before_closing_head_tag(:epub) do
+    ""
   end
 
   # Run "mix help deps" to learn about dependencies.
@@ -129,13 +157,13 @@ defmodule Fred.MixProject do
 
   defp copy_files(_) do
     # Set up directory structure
-    File.mkdir_p!("./doc/guides/images")
+    File.mkdir_p!("./doc/images")
 
     # Copy over image files
-    "./guides/images/"
+    "./images/"
     |> File.ls!()
     |> Enum.each(fn image_file ->
-      File.cp!("./guides/images/#{image_file}", "./doc/guides/images/#{image_file}")
+      File.cp!("./images/#{image_file}", "./doc/images/#{image_file}")
     end)
   end
 
@@ -147,7 +175,7 @@ defmodule Fred.MixProject do
   defp massage_readme(_) do
     hex_docs_friendly_header_content = """
     <br>
-    <img align="center" width="50%" src="guides/images/logo.png" alt="Fred Logo" style="margin-left:25%">
+    <img align="center" width="50%" src="images/logo.png" alt="Fred Logo" style="margin-left:25%">
     <br>
     <div align="center"></div>
     <br>
