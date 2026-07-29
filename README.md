@@ -82,20 +82,23 @@ config :fred, api_key: System.fetch_env!("FRED_API_KEY")
 ### Level Up Your Elixir Skills!
 
 Everything I have learned building production Elixir systems ends up in one of two
-places: an open source library on [Hex](https://hex.pm/users/akoutmos), or a book. 
+places: an open source library on [Hex](https://hex.pm/users/akoutmos), or a book.
 The libraries are free and will stay that way. The books are what let me keep writing them.
 
 If this library has been useful to you, picking up one of my books is the best way
 to support this library and the many others that I maintain. You'll also gain knowledge
 that took me years to attain!
 
-<img src="images/elixir_for_finance.png" width="180" />
-<img src="images/elixir_patterns.png" width="180" />
-<img src="images/programming_nerves.png" width="180" />
-<img src="images/weather_station.png" width="180" />
+<p align="center">
+  <a href="https://financialelixir.dev"><img src="images/elixir_for_finance.png" width="180" /></a>
+  <a href="https://elixirpatterns.dev"><img src="images/elixir_patterns.png" width="180" /></a>
+  <a href="https://programmingnerves.dev"><img src="images/programming_nerves.png" width="180" /></a>
+  <a href="https://pragprog.com/titles/passweather/build-a-weather-station-with-elixir-and-nerves"><img
+  src="images/weather_station.png" width="180" /></a>
+</p>
 
 **[Elixir For Finance](https://www.financialelixir.dev)** — Learn how to navigate markets
-and trading without leaving the BEAM. Livebook for exploration, Explorer for dataframes, 
+and trading without leaving the BEAM. Livebook for exploration, Explorer for dataframes,
 VegaLite for visualizations. This book goes through it all!
 
 **[Elixir Patterns](https://elixirpatterns.dev)** — The essential BEAM handbook
@@ -107,7 +110,7 @@ if you are looking to get your own hardware projects up and running with Elixir 
 I doubt you'll find a more fun and enjoyable hardware book out there!
 
 **[Build a Weather Station with Elixir and Nerves](https://pragprog.com/titles/passweather/build-a-weather-station-with-elixir-and-nerves/)** —
-A project-based introduction to Nerves. Wire up the sensors, capture readings and 
+A project-based introduction to Nerves. Wire up the sensors, capture readings and
 then pipe the data into a time series database that can be visualized with Grafana.
 
 ### Optional Settings
