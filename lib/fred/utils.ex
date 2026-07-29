@@ -83,6 +83,15 @@ defmodule Fred.Utils do
     ]
   end
 
+  defp generate_field_spec(:data_frame_rename) do
+    [
+      rename: [
+        doc: "A map of fields that need to be renamed inside of the DataFrame.",
+        type: {:map, :string, :string}
+      ]
+    ]
+  end
+
   defp generate_field_spec(:realtime_range) do
     [
       realtime_start: [

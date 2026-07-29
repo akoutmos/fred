@@ -44,6 +44,20 @@ defmodule Fred.Series do
                          {:date, :observation_end, "End date for observations."}
                        ])
 
+  @data_frame_observations_schema Utils.generate_schema([
+                                    :data_frame_rename,
+                                    :realtime_range,
+                                    :sort_order,
+                                    :units,
+                                    :frequency,
+                                    :aggregation_method,
+                                    :output_type,
+                                    :vintage_dates,
+                                    {:pagination, 100_000},
+                                    {:date, :observation_start, "Start date for observations."},
+                                    {:date, :observation_end, "End date for observations."}
+                                  ])
+
   @vintage_dates_schema Utils.generate_schema([
                           :realtime_range,
                           :sort_order,
@@ -230,7 +244,8 @@ defmodule Fred.Series do
 
   @doc """
   Same as `observations/2` except this returns the observation data
-  inside of an `Explorer.DataFrame`. You can also pass in a list of
+  inside of an `Explorer.DataFrame`. This function also supports additional
+  options to format the output DataFrame. You can also pass in a list of
   series ids and all of the series will be packaged into the
   `Explorer.DataFrame`. Since series can all have different dates,
   the union of all of the dates across all of the series will populate
@@ -239,7 +254,7 @@ defmodule Fred.Series do
 
   ## Options
 
-    #{NimbleOptions.docs(@observations_schema)}
+    #{NimbleOptions.docs(@data_frame_observations_schema)}
 
   ## Examples
 
@@ -264,7 +279,8 @@ defmodule Fred.Series do
   def observations_as_data_frame(series_ids, opts \\ [])
 
   def observations_as_data_frame(series_ids, opts) when is_list(series_ids) do
-    with :ok <- Utils.validate_opts(opts, @observations_schema) do
+    with :ok <- Utils.validate_opts(opts, @data_frame_observations_schema) do
+      {rename_map, opts} = Keyword.pop(opts, :rename, %{})
       timeout = Application.get_env(:fred, :timeout, 30_000)
 
       data_frame =
@@ -316,6 +332,7 @@ defmodule Fred.Series do
         data_frame
         |> DataFrame.pivot_wider("series_id", "value")
         |> DataFrame.sort_by(date)
+        |> DataFrame.rename(rename_map)
       else
         data_frame
       end
